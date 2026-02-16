@@ -108,6 +108,9 @@
   .peering-gw rect{transition:fill-opacity .15s}
   .peering-gw:hover rect{fill-opacity:.35}
   .peering-gw text{pointer-events:none}
+  .peering-branch{fill:none;stroke-width:1.5;opacity:.5}
+  .peering-ep{cursor:pointer;transition:opacity .15s}
+  .peering-ep:hover{opacity:1}
   @keyframes dashFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:-18}}
   .animated{animation:dashFlow 1s linear infinite}
   .export-bar{position:absolute;top:12px;right:12px;display:none;gap:4px;z-index:6;flex-direction:column}
@@ -1863,15 +1866,16 @@ function renderPeeringLines(g, lk) {
     }
   });
 
-  // Collect subnet boxes inside each VNet (by spatial containment)
+  // Collect subnet boxes inside each VNet (by spatial containment, with subnet id)
   g.selectAll('.subnet-node').each(function() {
     const rect = d3.select(this).select('rect');
     if (!rect.node()) return;
+    const subId = d3.select(this).attr('data-subnet-id') || '';
     const x = +rect.attr('x'), y = +rect.attr('y');
     const w = +rect.attr('width'), h = +rect.attr('height');
     for (const [vId, vb] of Object.entries(boxes)) {
       if (x >= vb.x && y >= vb.y && x + w <= vb.x + vb.w && y + h <= vb.y + vb.h) {
-        subBoxes[vId].push({ x, y, w, h });
+        subBoxes[vId].push({ x, y, w, h, subId });
         break;
       }
     }
@@ -2000,26 +2004,60 @@ function renderPeeringLines(g, lk) {
     return best;
   }
 
-  // ── Internal route (gateway → VNet centre, around subnets) ──
+  // ── Internal routing: hub + branches to individual subnets ──
 
-  function intRoute(vnetId, gwPt, gwSide) {
+  // Hub point in VNet header area (above all subnets)
+  function hubPt(vnetId) {
     const vb = boxes[vnetId];
-    const cx = vb.cx, cy = vb.cy;
-    const obs = (subBoxes[vnetId] || []).map(b => pad(b, IM));
+    return { x: vb.cx, y: vb.y + 42 };
+  }
+
+  // Trunk: gateway → hub (inside VNet, around subnets)
+  function trunkRoute(gwPt, gwSide, hub, obs) {
     const inDist = 12;
     const inPt = stepIn(gwPt, gwSide, inDist);
-
     let pts;
     if (hSide(gwSide)) {
-      pts = Math.abs(inPt.y - cy) < 1
-        ? [gwPt, inPt, { x: cx, y: cy }]
-        : [gwPt, inPt, { x: inPt.x, y: cy }, { x: cx, y: cy }];
+      pts = Math.abs(inPt.y - hub.y) < 1
+        ? [gwPt, inPt, hub]
+        : [gwPt, inPt, { x: inPt.x, y: hub.y }, hub];
     } else {
-      pts = Math.abs(inPt.x - cx) < 1
-        ? [gwPt, inPt, { x: cx, y: cy }]
-        : [gwPt, inPt, { x: cx, y: inPt.y }, { x: cx, y: cy }];
+      pts = Math.abs(inPt.x - hub.x) < 1
+        ? [gwPt, inPt, hub]
+        : [gwPt, inPt, { x: hub.x, y: inPt.y }, hub];
     }
     return fixCollisions(pts, obs);
+  }
+
+  // Branch: hub → subnet top-centre endpoint
+  function branchRoute(hub, cp, obs) {
+    if (Math.abs(cp.x - hub.x) < 1 && Math.abs(cp.y - hub.y) < 1) return [hub, cp];
+    if (Math.abs(cp.x - hub.x) < 1) return fixCollisions([{ ...hub }, { ...cp }], obs);
+    if (Math.abs(cp.y - hub.y) < 1) return fixCollisions([{ ...hub }, { ...cp }], obs);
+    const dy = cp.y - hub.y;
+    // Near subnets (first row): go horizontal then down
+    // Far subnets (lower rows): go vertical through column gap then horizontal
+    const pts = dy < 60
+      ? [{ ...hub }, { x: cp.x, y: hub.y }, { ...cp }]
+      : [{ ...hub }, { x: hub.x, y: cp.y }, { ...cp }];
+    return fixCollisions(pts, obs);
+  }
+
+  // NSG security state for a subnet
+  function nsgState(subId) {
+    const nsg = lk.nsgBySubnet[(subId || '').toLowerCase()];
+    if (!nsg) return { state: 'open', nsg: null, rules: [] };
+    const rules = (nsg.securityRules || []).filter(r => r.direction === 'Inbound');
+    const allows = rules.filter(r => r.access === 'Allow');
+    const hasPublic = allows.some(r =>
+      r.sourceAddressPrefix === '*' || r.sourceAddressPrefix === 'Internet');
+    return { state: hasPublic ? 'filtered' : 'locked', nsg, rules };
+  }
+
+  function epColor(state) {
+    if (state === 'locked')   return 'var(--accent-green)';
+    if (state === 'filtered') return '#f59e0b';
+    return 'var(--accent-red)';
   }
 
   // ── SVG path with rounded corners ──
@@ -2117,33 +2155,35 @@ function renderPeeringLines(g, lk) {
       .text('GW');
   }
 
-  // ── Build full path & render each peering ──
+  // ── Build spine + branch tree & render each peering ──
+
+  const branchesDrawn = new Set();  // draw branches once per VNet
 
   pairs.forEach(({ sourceId, remoteId }) => {
     const ext = bestExtRoute(sourceId, remoteId);
     const { ss, ds, pts: extPts } = ext;
 
-    // Internal routes: gateway → VNet centre (around subnets)
-    const intSrc = intRoute(sourceId, extPts[0], ss);
-    const intDst = intRoute(remoteId, extPts[extPts.length - 1], ds);
+    const hubSrc = hubPt(sourceId), hubDst = hubPt(remoteId);
+    const srcSubObs = (subBoxes[sourceId] || []).map(b => pad(b, IM));
+    const dstSubObs = (subBoxes[remoteId] || []).map(b => pad(b, IM));
 
-    // Stitch: centre_src ← int_src ... gw_src === external === gw_dst ... int_dst → centre_dst
-    const srcRev = intSrc.slice().reverse();  // [centre, ..., gwPt]
-    const fullPts = [
-      ...srcRev,                     // centre → gw_src
-      ...extPts.slice(1, -1),        // external middle (gw endpoints already included)
-      ...intDst                      // gw_dst → centre
-    ];
+    // Trunks: gateway → hub (inside VNet, around subnets)
+    const trSrc = trunkRoute(extPts[0], ss, hubSrc, srcSubObs);
+    const trDst = trunkRoute(extPts[extPts.length - 1], ds, hubDst, dstSubObs);
+
+    // Spine: hub_src ← trunk ← gw_src === ext === gw_dst → trunk → hub_dst
+    const srcRev = trSrc.slice().reverse();
+    const spine = [...srcRev, ...extPts.slice(1, -1), ...trDst];
 
     peerG.append('path')
       .attr('class', 'peering-line')
-      .attr('d', toPath(fullPts))
+      .attr('d', toPath(spine))
       .attr('stroke', 'var(--peer-color)');
 
     renderGw(sourceId, ss);
     renderGw(remoteId, ds);
 
-    // Label on the external segment (midpoint of external path only)
+    // PEERING label on external segment
     const extMid = pathMid(extPts);
     peerG.append('text')
       .attr('x', extMid.x).attr('y', extMid.y - 8)
@@ -2152,6 +2192,88 @@ function renderPeeringLines(g, lk) {
       .attr('font-family', "'IBM Plex Mono',monospace")
       .attr('font-size', 'calc(8px * var(--txt-scale))')
       .text('PEERING');
+
+    // ── Branches + endpoint dots (once per VNet) ──
+
+    [{ vnetId: sourceId, hub: hubSrc, obs: srcSubObs },
+     { vnetId: remoteId, hub: hubDst, obs: dstSubObs }].forEach(({ vnetId, hub, obs }) => {
+      if (branchesDrawn.has(vnetId)) return;
+      branchesDrawn.add(vnetId);
+      const subs = subBoxes[vnetId] || [];
+      if (subs.length === 0) {
+        // No subnets — endpoint dot at hub
+        peerG.append('circle').attr('class', 'peering-ep')
+          .attr('cx', hub.x).attr('cy', hub.y).attr('r', 4)
+          .attr('fill', 'var(--peer-color)').attr('fill-opacity', .3)
+          .attr('stroke', 'var(--peer-color)').attr('stroke-width', 1.2);
+        return;
+      }
+
+      subs.forEach(sub => {
+        const cp = { x: sub.x + sub.w / 2, y: sub.y };  // top centre of subnet
+        const brObs = subs.filter(s => s !== sub).map(b => pad(b, IM));
+        const bPts = branchRoute(hub, cp, brObs);
+
+        // NSG security state for coloring
+        const sec = nsgState(sub.subId);
+        const color = epColor(sec.state);
+
+        // Branch line
+        peerG.append('path')
+          .attr('class', 'peering-branch')
+          .attr('d', toPath(bPts))
+          .attr('stroke', color);
+
+        // Endpoint dot
+        const epG = peerG.append('g').attr('class', 'peering-ep')
+          .attr('transform', `translate(${cp.x},${cp.y})`);
+        epG.append('circle').attr('r', 4.5)
+          .attr('fill', color).attr('fill-opacity', .2)
+          .attr('stroke', color).attr('stroke-width', 1.4);
+        epG.append('circle').attr('r', 1.8).attr('fill', color);
+
+        // Security state label
+        const labelText = sec.state === 'locked' ? 'NSG' : sec.state === 'filtered' ? 'NSG' : 'OPEN';
+        if (sec.state === 'open') {
+          epG.append('text')
+            .attr('x', 8).attr('y', 3)
+            .attr('fill', color).attr('font-size', '7px').attr('font-weight', '600')
+            .attr('font-family', "'IBM Plex Mono',monospace")
+            .text('OPEN');
+        }
+
+        // Tooltip with NSG rules
+        epG.on('mouseenter', function(event) {
+          const subName = sub.subId ? sub.subId.split('/').pop() : '?';
+          let html = `<div class="tt-title">Peering Endpoint</div>`;
+          html += `<div class="tt-sub">${esc(subName)}</div>`;
+          if (!sec.nsg) {
+            html += `<div class="tt-sec"><div class="tt-sh" style="color:var(--accent-red)">No NSG — all traffic allowed</div></div>`;
+          } else {
+            const nsgName = sec.nsg.name || sec.nsg.id?.split('/').pop() || '?';
+            const stateLabel = sec.state === 'locked' ? 'Secured' : 'Filtered (public access)';
+            const stateColor = sec.state === 'locked' ? 'var(--accent-green)' : '#f59e0b';
+            html += `<div class="tt-sec"><div class="tt-sh">NSG</div><div class="tt-r">${esc(nsgName)}</div></div>`;
+            html += `<div class="tt-sec"><div class="tt-sh" style="color:${stateColor}">${stateLabel}</div></div>`;
+            const inbound = sec.rules.slice(0, 6);
+            if (inbound.length > 0) {
+              html += `<div class="tt-sec"><div class="tt-sh">Inbound Rules</div>`;
+              inbound.forEach(r => {
+                const icon = r.access === 'Allow' ? '✓' : '✕';
+                const rColor = r.access === 'Allow' ? 'var(--accent-green)' : 'var(--accent-red)';
+                const port = r.destinationPortRange || (r.destinationPortRanges || []).join(',') || '*';
+                const src = r.sourceAddressPrefix || (r.sourceAddressPrefixes || []).join(',') || '*';
+                html += `<div class="tt-r" style="color:${rColor}">${icon} ${esc(r.name || '')} ${esc(port)}/${esc(r.protocol || '*')} from ${esc(src)}</div>`;
+              });
+              html += `</div>`;
+            }
+          }
+          showTooltip(event, html);
+        })
+        .on('mouseleave', hideTooltip)
+        .on('mousemove', moveTooltip);
+      });
+    });
   });
 }
 

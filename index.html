@@ -3758,6 +3758,8 @@ function generateDemo() {
   ]);
   const nsgDevWeb = makeNsg(RG_DEV, 'nsg-dev-web', [
     { name: 'AllowHTTPS', priority: 100, direction: 'Inbound', access: 'Allow', protocol: 'Tcp', sourceAddressPrefix: '*', destinationAddressPrefix: '*', destinationPortRange: '443' },
+    { name: 'AllowSSH', priority: 200, direction: 'Inbound', access: 'Allow', protocol: 'Tcp', sourceAddressPrefix: '*', destinationAddressPrefix: '*', destinationPortRange: '22' },
+    { name: 'AllowRDP', priority: 210, direction: 'Inbound', access: 'Allow', protocol: 'Tcp', sourceAddressPrefix: '*', destinationAddressPrefix: '*', destinationPortRange: '3389' },
   ]);
 
   const nsgs = [nsgWebProd, nsgAppProd, nsgDataProd, nsgHubMgmt, nsgDevWeb];
@@ -3811,6 +3813,8 @@ function generateDemo() {
       { id: subnetId(RG_PROD, 'vnet-spoke-prod', 'snet-prod-aks'), name: 'snet-prod-aks', addressPrefix: '10.1.4.0/22',
         routeTable: { id: rtProdSpoke.id } },
       { id: subnetId(RG_PROD, 'vnet-spoke-prod', 'snet-prod-func'), name: 'snet-prod-func', addressPrefix: '10.1.8.0/24' },
+      { id: subnetId(RG_PROD, 'vnet-spoke-prod', 'snet-prod-lb'), name: 'snet-prod-lb', addressPrefix: '10.1.9.0/24',
+        networkSecurityGroup: { id: nsgAppProd.id }, routeTable: { id: rtProdSpoke.id } },
     ]
   };
 
@@ -3989,6 +3993,90 @@ function generateDemo() {
     sku: { name: 'WAF_v2', tier: 'WAF_v2', capacity: 2 },
   }];
 
+  // Additional Public IPs
+  publicIps.push(
+    { id: pipId(RG_PROD, 'pip-lb-prod-web'), name: 'pip-lb-prod-web', location: LOC, ipAddress: '20.85.100.30', publicIpAllocationMethod: 'Static', sku: { name: 'Standard' }, zones: ['1','2','3'] },
+    { id: pipId(RG_DEV, 'pip-appgw-dev'), name: 'pip-appgw-dev', location: LOC, ipAddress: '20.85.100.40', publicIpAllocationMethod: 'Static', sku: { name: 'Standard' } }
+  );
+
+  // Load Balancers
+  const loadBalancers = [
+    // Internal LB fronting app tier
+    { id: rid(RG_PROD, 'Microsoft.Network/loadBalancers', 'lb-prod-app-internal'),
+      name: 'lb-prod-app-internal', location: LOC,
+      sku: { name: 'Standard' },
+      frontendIPConfigurations: [{ name: 'fe-internal', privateIPAddress: '10.1.9.4', subnet: { id: subnetId(RG_PROD, 'vnet-spoke-prod', 'snet-prod-lb') } }],
+      backendAddressPools: [{ name: 'pool-app', loadBalancerBackendAddresses: [
+        { name: 'vm-prod-app-01', ipAddress: '10.1.2.4' },
+        { name: 'vm-prod-app-02', ipAddress: '10.1.2.5' },
+      ]}],
+      loadBalancingRules: [
+        { name: 'rule-http', protocol: 'Tcp', frontendPort: 8080, backendPort: 8080 },
+        { name: 'rule-https', protocol: 'Tcp', frontendPort: 8443, backendPort: 8443 },
+      ],
+      probes: [
+        { name: 'probe-http', protocol: 'Http', port: 8080, intervalInSeconds: 15 },
+        { name: 'probe-https', protocol: 'Https', port: 8443, intervalInSeconds: 15 },
+      ]
+    },
+    // Public LB fronting web tier
+    { id: rid(RG_PROD, 'Microsoft.Network/loadBalancers', 'lb-prod-web-public'),
+      name: 'lb-prod-web-public', location: LOC,
+      sku: { name: 'Standard' },
+      frontendIPConfigurations: [{ name: 'fe-public', publicIpAddress: { id: pipId(RG_PROD, 'pip-lb-prod-web') } }],
+      backendAddressPools: [{ name: 'pool-web', loadBalancerBackendAddresses: [
+        { name: 'vm-prod-web-01', ipAddress: '10.1.1.4' },
+        { name: 'vm-prod-web-02', ipAddress: '10.1.1.5' },
+      ]}],
+      loadBalancingRules: [
+        { name: 'rule-https', protocol: 'Tcp', frontendPort: 443, backendPort: 443 },
+        { name: 'rule-http', protocol: 'Tcp', frontendPort: 80, backendPort: 80 },
+      ],
+      probes: [
+        { name: 'probe-https', protocol: 'Https', port: 443, intervalInSeconds: 10 },
+      ]
+    },
+  ];
+
+  // Managed Disks (data disks attached to VMs)
+  const disks = [
+    { id: rid(RG_PROD, 'Microsoft.Compute/disks', 'disk-prod-web-01-data'), name: 'disk-prod-web-01-data',
+      location: LOC, sku: { name: 'Premium_LRS' }, diskSizeGb: 256,
+      managedBy: vmId(RG_PROD, 'vm-prod-web-01') },
+    { id: rid(RG_PROD, 'Microsoft.Compute/disks', 'disk-prod-web-02-data'), name: 'disk-prod-web-02-data',
+      location: LOC, sku: { name: 'Premium_LRS' }, diskSizeGb: 256,
+      managedBy: vmId(RG_PROD, 'vm-prod-web-02') },
+    { id: rid(RG_PROD, 'Microsoft.Compute/disks', 'disk-prod-app-01-data'), name: 'disk-prod-app-01-data',
+      location: LOC, sku: { name: 'Premium_LRS' }, diskSizeGb: 512,
+      managedBy: vmId(RG_PROD, 'vm-prod-app-01') },
+    { id: rid(RG_PROD, 'Microsoft.Compute/disks', 'disk-prod-app-02-data'), name: 'disk-prod-app-02-data',
+      location: LOC, sku: { name: 'Premium_LRS' }, diskSizeGb: 512,
+      managedBy: vmId(RG_PROD, 'vm-prod-app-02') },
+    { id: rid(RG_HUB, 'Microsoft.Compute/disks', 'disk-hub-jumpbox-data'), name: 'disk-hub-jumpbox-data',
+      location: LOC, sku: { name: 'StandardSSD_LRS' }, diskSizeGb: 64,
+      managedBy: vmId(RG_HUB, 'vm-hub-jumpbox') },
+  ];
+
+  // Second storage account — intentional compliance violations for demo
+  storageAccounts.push(
+    { id: rid(RG_DEV, 'Microsoft.Storage/storageAccounts', 'stdevdata01'), name: 'stdevdata01', location: LOC,
+      primaryEndpoints: { blob: 'https://stdevdata01.blob.core.windows.net/' },
+      encryption: { services: { blob: { enabled: true } } },
+      allowBlobPublicAccess: true,            // ARCH-S1 violation: public blob access
+      minimumTlsVersion: 'TLS1_0',           // SOC2-CC6.1 violation: old TLS
+      networkRuleSet: { defaultAction: 'Allow', virtualNetworkRules: [] } } // ARCH-S2 violation: open network
+  );
+
+  // Second App Gateway without WAF — WAF-1 compliance violation
+  appGateways.push({
+    id: rid(RG_DEV, 'Microsoft.Network/applicationGateways', 'appgw-dev-web'),
+    name: 'appgw-dev-web', location: LOC,
+    gatewayIpConfigurations: [{ name: 'gwip', subnet: { id: subnetId(RG_DEV, 'vnet-spoke-dev', 'snet-dev-web') } }],
+    frontendIpConfigurations: [{ publicIpAddress: { id: pipId(RG_DEV, 'pip-appgw-dev') } }],
+    backendAddressPools: [{ name: 'pool-dev-web', backendAddresses: [{ ipAddress: '10.2.1.4' }] }],
+    sku: { name: 'Standard_v2', tier: 'Standard_v2', capacity: 1 },  // No WAF! WAF-1 violation
+  });
+
   // Set textarea values
   function setInput(id, data) {
     const el = document.getElementById(id);
@@ -4013,6 +4101,8 @@ function generateDemo() {
   setInput('in_sqldbs', sqlDatabases);
   setInput('in_redis', redisCaches);
   setInput('in_appgws', appGateways);
+  setInput('in_lbs', loadBalancers);
+  setInput('in_disks', disks);
 
   // Auto-render
   renderMap();
@@ -4729,10 +4819,10 @@ function runSelfTests() {
       functionApps: safeParse(gv('in_funcs')),
       containerInstances: [], aksClusters: [],
       appGateways: safeParse(gv('in_appgws')),
-      loadBalancers: [],
+      loadBalancers: safeParse(gv('in_lbs')),
       peerings: safeParse(gv('in_peerings')),
       vpnConnections: [], vwans: [], vhubs: [], hubConnections: [],
-      disks: [], snapshots: [],
+      disks: safeParse(gv('in_disks')), snapshots: [],
       storageAccounts: safeParse(gv('in_storage')),
       dnsZones: [], privateDnsZones: [], dnsRecords: [],
       frontDoors: [], wafPolicies: [],
@@ -4764,6 +4854,8 @@ function runSelfTests() {
       Object.values(lk.natBySubnet).some(v => v !== undefined));
     assert('buildLookups: nicsBySubnet has entries', Object.keys(lk.nicsBySubnet).length > 0);
     assert('buildLookups: funcBySubnet has entries', Object.keys(lk.funcBySubnet).length > 0);
+    assert('buildLookups: lbBySubnet has entries', Object.keys(lk.lbBySubnet).length > 0);
+    assert('buildLookups: disksByVm has entries', Object.keys(lk.disksByVm).length > 0);
 
     // Verify case-insensitive lookups
     const firstSubnet = lk.subnets[0];
@@ -4874,9 +4966,31 @@ function runSelfTests() {
     const gwNsgFindings = archN1.filter(f => (f.resource || '').toLowerCase() === 'gatewaysubnet');
     assert('compliance: ARCH-N1 excludes GatewaySubnet', gwNsgFindings.length === 0);
 
-    // ARCH-S1: demo storage has allowBlobPublicAccess = false, should NOT fire
+    // ARCH-S1: stdevdata01 has allowBlobPublicAccess = true -> should fire
     const archS1 = findings.filter(f => f.id === 'ARCH-S1');
-    assert('compliance: ARCH-S1 does NOT fire for storage with publicBlob=false', archS1.length === 0);
+    assert('compliance: ARCH-S1 fires for storage with publicBlob=true', archS1.length > 0, 'stdevdata01 has allowBlobPublicAccess: true');
+    // But stproddata01 should NOT be in ARCH-S1 (it has publicBlob=false)
+    assert('compliance: ARCH-S1 only targets public-access storage', archS1.every(f => f.resource !== 'stproddata01'));
+
+    // ARCH-S2: stdevdata01 has defaultAction='Allow' -> should fire
+    const archS2 = findings.filter(f => f.id === 'ARCH-S2');
+    assert('compliance: ARCH-S2 fires for storage without network restrictions', archS2.length > 0, 'stdevdata01 has defaultAction: Allow');
+
+    // SOC2-CC6.1: stdevdata01 has TLS1_0 -> should fire
+    const soc2 = findings.filter(f => f.id === 'SOC2-CC6.1');
+    assert('compliance: SOC2-CC6.1 fires for TLS below 1.2', soc2.length > 0, 'stdevdata01 has TLS1_0');
+
+    // CIS-6.1: nsg-dev-web has RDP from * -> should fire
+    const cis61 = findings.filter(f => f.id === 'CIS-6.1');
+    assert('compliance: CIS-6.1 fires for RDP from internet', cis61.length > 0, 'nsg-dev-web allows RDP from *');
+
+    // CIS-6.2: nsg-dev-web has SSH from * -> should fire
+    const cis62 = findings.filter(f => f.id === 'CIS-6.2');
+    assert('compliance: CIS-6.2 fires for SSH from internet', cis62.length > 0, 'nsg-dev-web allows SSH from *');
+
+    // WAF-1: appgw-dev-web has Standard_v2 (no WAF) -> should fire
+    const waf1 = findings.filter(f => f.id === 'WAF-1');
+    assert('compliance: WAF-1 fires for App Gateway without WAF', waf1.length > 0, 'appgw-dev-web has Standard_v2 SKU');
 
     // ARCH-F1: demo firewall has no policy
     const archF1 = findings.filter(f => f.id === 'ARCH-F1');

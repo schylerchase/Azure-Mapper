@@ -1544,10 +1544,10 @@ function renderGridLayout(g, lk) {
       const nsg = lk.nsgBySubnet[subId];
       if (nsg) {
         subG.append('circle')
-          .attr('cx', sx + SUBNET_W - 20).attr('cy', sy + subH - 14)
+          .attr('cx', sx + SUBNET_W - 20).attr('cy', sy + subH - 20)
           .attr('r', 5).attr('fill', 'var(--nsg-color)');
         subG.append('text').attr('class', 'resource-icon')
-          .attr('x', sx + SUBNET_W - 28).attr('y', sy + subH - 10)
+          .attr('x', sx + SUBNET_W - 28).attr('y', sy + subH - 16)
           .attr('text-anchor', 'end').attr('fill', 'var(--nsg-color)')
           .text('NSG');
       }
@@ -1555,10 +1555,10 @@ function renderGridLayout(g, lk) {
       const nat = lk.natBySubnet[subId];
       if (nat) {
         subG.append('circle')
-          .attr('cx', sx + SUBNET_W - 40).attr('cy', sy + subH - 14)
+          .attr('cx', sx + SUBNET_W - 40).attr('cy', sy + subH - 20)
           .attr('r', 5).attr('fill', 'var(--nat-color)');
         subG.append('text').attr('class', 'resource-icon')
-          .attr('x', sx + SUBNET_W - 48).attr('y', sy + subH - 10)
+          .attr('x', sx + SUBNET_W - 48).attr('y', sy + subH - 16)
           .attr('text-anchor', 'end').attr('fill', 'var(--nat-color)')
           .text('NAT');
       }
@@ -1835,14 +1835,14 @@ function renderVnetBox(g, vnet, vx, vy, vnetW, vnetH, lk) {
     // NSG/NAT indicators
     const nsg = lk.nsgBySubnet[subId];
     if (nsg) {
-      subG.append('circle').attr('cx', sx + SUBNET_W - 20).attr('cy', sy + subH - 14).attr('r', 5).attr('fill', 'var(--nsg-color)');
-      subG.append('text').attr('class', 'resource-icon').attr('x', sx + SUBNET_W - 28).attr('y', sy + subH - 10)
+      subG.append('circle').attr('cx', sx + SUBNET_W - 20).attr('cy', sy + subH - 20).attr('r', 5).attr('fill', 'var(--nsg-color)');
+      subG.append('text').attr('class', 'resource-icon').attr('x', sx + SUBNET_W - 28).attr('y', sy + subH - 16)
         .attr('text-anchor', 'end').attr('fill', 'var(--nsg-color)').text('NSG');
     }
     const natGw = lk.natBySubnet[subId];
     if (natGw) {
-      subG.append('circle').attr('cx', sx + SUBNET_W - 40).attr('cy', sy + subH - 14).attr('r', 5).attr('fill', 'var(--nat-color)');
-      subG.append('text').attr('class', 'resource-icon').attr('x', sx + SUBNET_W - 48).attr('y', sy + subH - 10)
+      subG.append('circle').attr('cx', sx + SUBNET_W - 40).attr('cy', sy + subH - 20).attr('r', 5).attr('fill', 'var(--nat-color)');
+      subG.append('text').attr('class', 'resource-icon').attr('x', sx + SUBNET_W - 48).attr('y', sy + subH - 16)
         .attr('text-anchor', 'end').attr('fill', 'var(--nat-color)').text('NAT');
     }
   });
@@ -1881,7 +1881,7 @@ function renderPeeringLines(g, lk) {
     }
   });
 
-  const M = 20, R = 8, IM = 6;  // IM = internal margin around subnets
+  const M = 20, R = 8, IM = 10;  // IM = internal margin around subnets
 
   // ── Shared geometry helpers ──
 
@@ -1893,10 +1893,10 @@ function renderPeeringLines(g, lk) {
   }
 
   function connPt(box, side) {
-    if (side === 'right')  return { x: box.x + box.w, y: box.cy };
-    if (side === 'left')   return { x: box.x, y: box.cy };
-    if (side === 'bottom') return { x: box.cx, y: box.y + box.h };
-    return { x: box.cx, y: box.y };
+    if (side === 'right')  return { x: Math.round(box.x + box.w), y: Math.round(box.cy) };
+    if (side === 'left')   return { x: Math.round(box.x),         y: Math.round(box.cy) };
+    if (side === 'bottom') return { x: Math.round(box.cx),        y: Math.round(box.y + box.h) };
+    return { x: Math.round(box.cx), y: Math.round(box.y) };
   }
 
   function facing(src, dst) {
@@ -2009,7 +2009,7 @@ function renderPeeringLines(g, lk) {
   // Hub point in VNet header area (above all subnets)
   function hubPt(vnetId) {
     const vb = boxes[vnetId];
-    return { x: vb.cx, y: vb.y + 42 };
+    return { x: Math.round(vb.cx), y: Math.round(vb.y + 42) };
   }
 
   // Trunk: gateway → hub (inside VNet, around subnets)
@@ -2209,10 +2209,18 @@ function renderPeeringLines(g, lk) {
         return;
       }
 
-      subs.forEach(sub => {
-        const cp = { x: sub.x + sub.w / 2, y: sub.y };  // top centre of subnet
+      // Spread branch start points so parallel lines don't overlap.
+      // Auto-shrink spread for many subnets so points stay inside VNet.
+      const vb = boxes[vnetId];
+      const maxSpread = subs.length > 1 ? (vb.w - 2 * IM) / (subs.length - 1) : 0;
+      const SPREAD = subs.length > 1 ? Math.min(16, maxSpread) : 0;
+      const spreadStart = -SPREAD * (subs.length - 1) / 2;
+
+      subs.forEach((sub, si) => {
+        const cp = { x: sub.x + sub.w / 2, y: sub.y - 6 };  // just above top edge of subnet
         const brObs = subs.filter(s => s !== sub).map(b => pad(b, IM));
-        const bPts = branchRoute(hub, cp, brObs);
+        const branchHub = { x: hub.x + spreadStart + si * SPREAD, y: hub.y };
+        const bPts = branchRoute(branchHub, cp, brObs);
 
         // NSG security state for coloring
         const sec = nsgState(sub.subId);

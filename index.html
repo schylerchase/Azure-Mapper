@@ -1849,7 +1849,6 @@ function renderPeeringLines(g, lk) {
   const peerG = g.append('g').attr('class', 'peering-layer');
   const boxes = {};
 
-  // Collect VNet bounding boxes
   g.selectAll('.vnet-group').each(function() {
     const rect = d3.select(this).select('rect');
     const id = d3.select(this).attr('data-vnet-id');
@@ -1860,10 +1859,7 @@ function renderPeeringLines(g, lk) {
     }
   });
 
-  const M = 20;   // gutter margin from VNet edge
-  const R = 8;    // corner radius
-
-  // ── Helpers ──
+  const M = 20, R = 8;
 
   function pad(b, m) { return { x: b.x - m, y: b.y - m, w: b.w + 2 * m, h: b.h + 2 * m }; }
 
@@ -1872,32 +1868,163 @@ function renderPeeringLines(g, lk) {
              Math.max(y1, y2) < b.y || Math.min(y1, y2) > b.y + b.h);
   }
 
-  // Fixed connection-point at the centre of a given side
   function connPoint(box, side) {
-    if (side === 'right') return { x: box.x + box.w, y: box.cy };
-    if (side === 'left')  return { x: box.x, y: box.cy };
+    if (side === 'right')  return { x: box.x + box.w, y: box.cy };
+    if (side === 'left')   return { x: box.x, y: box.cy };
     if (side === 'bottom') return { x: box.cx, y: box.y + box.h };
-    return { x: box.cx, y: box.y }; // top
+    return { x: box.cx, y: box.y };
   }
 
-  // Which side of `src` faces `dst`?
   function facingSide(src, dst) {
     const dx = dst.cx - src.cx, dy = dst.cy - src.cy;
     if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'right' : 'left';
     return dy >= 0 ? 'bottom' : 'top';
   }
 
-  // Step outward from a connection point by margin M
-  function stepOut(pt, side) {
+  function sOut(pt, side) {
     if (side === 'right') return { x: pt.x + M, y: pt.y };
     if (side === 'left')  return { x: pt.x - M, y: pt.y };
     if (side === 'bottom') return { x: pt.x, y: pt.y + M };
     return { x: pt.x, y: pt.y - M };
   }
 
-  function isHoriz(side) { return side === 'left' || side === 'right'; }
+  function isH(side) { return side === 'left' || side === 'right'; }
 
-  // ── Phase 1: Deduplicate peering pairs ──
+  function getObs(srcId, dstId) {
+    return Object.entries(boxes)
+      .filter(([id]) => id !== srcId && id !== dstId)
+      .map(([, b]) => pad(b, M));
+  }
+
+  function makeRoute(sp, so, ss, dp, dout, ds) {
+    const sH = isH(ss), dH = isH(ds);
+    if (sH && dH) {
+      if (Math.abs(so.y - dout.y) < 1) return [sp, so, dout, dp];
+      const mx = (so.x + dout.x) / 2;
+      return [sp, so, { x: mx, y: so.y }, { x: mx, y: dout.y }, dout, dp];
+    }
+    if (!sH && !dH) {
+      if (Math.abs(so.x - dout.x) < 1) return [sp, so, dout, dp];
+      const my = (so.y + dout.y) / 2;
+      return [sp, so, { x: so.x, y: my }, { x: dout.x, y: my }, dout, dp];
+    }
+    if (sH) return [sp, so, { x: dout.x, y: so.y }, dout, dp];
+    return [sp, so, { x: so.x, y: dout.y }, dout, dp];
+  }
+
+  function fixCollisions(pts, obs) {
+    for (let iter = 0; iter < 8; iter++) {
+      let changed = false;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        for (const o of obs) {
+          if (!segHitsBox(a.x, a.y, b.x, b.y, o)) continue;
+          if (Math.abs(a.y - b.y) < 1) {
+            const above = o.y - 1, below = o.y + o.h + 1;
+            const nY = Math.abs(a.y - above) <= Math.abs(a.y - below) ? above : below;
+            pts = [...pts.slice(0, i + 1), { x: a.x, y: nY }, { x: b.x, y: nY }, ...pts.slice(i + 1)];
+          } else if (Math.abs(a.x - b.x) < 1) {
+            const left = o.x - 1, right = o.x + o.w + 1;
+            const nX = Math.abs(a.x - left) <= Math.abs(a.x - right) ? left : right;
+            pts = [...pts.slice(0, i + 1), { x: nX, y: a.y }, { x: nX, y: b.y }, ...pts.slice(i + 1)];
+          } else {
+            pts = [...pts.slice(0, i + 1), { x: b.x, y: a.y }, ...pts.slice(i + 1)];
+          }
+          changed = true; break;
+        }
+        if (changed) break;
+      }
+      if (!changed) break;
+    }
+    // Collapse duplicate & collinear
+    const cl = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i], v = cl[cl.length - 1];
+      if (Math.abs(p.x - v.x) > 0.5 || Math.abs(p.y - v.y) > 0.5) cl.push(p);
+    }
+    const out = [cl[0]];
+    for (let i = 1; i < cl.length - 1; i++) {
+      const p = out[out.length - 1], c = cl[i], n = cl[i + 1];
+      if (!(Math.abs(p.x - c.x) < 0.5 && Math.abs(c.x - n.x) < 0.5) &&
+          !(Math.abs(p.y - c.y) < 0.5 && Math.abs(c.y - n.y) < 0.5)) out.push(c);
+    }
+    out.push(cl[cl.length - 1]);
+    return out;
+  }
+
+  // Try multiple side pairs and pick the shortest / simplest route
+  function bestRoute(srcId, dstId) {
+    const src = boxes[srcId], dst = boxes[dstId];
+    const obs = getObs(srcId, dstId);
+    const ns = facingSide(src, dst), nd = facingSide(dst, src);
+
+    const tries = [
+      [ns, nd],
+      ['top', 'top'], ['bottom', 'bottom'],
+      ['left', 'left'], ['right', 'right'],
+    ];
+    // Remove duplicates
+    const seen = new Set();
+    const unique = tries.filter(([a, b]) => {
+      const k = a + '|' + b;
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+
+    let best = null;
+    for (const [ss, ds] of unique) {
+      const sp = connPoint(src, ss), dp = connPoint(dst, ds);
+      const so = sOut(sp, ss), dout = sOut(dp, ds);
+      const raw = makeRoute(sp, so, ss, dp, dout, ds);
+      const pts = fixCollisions(raw.map(p => ({ ...p })), obs);
+      let len = 0;
+      for (let i = 0; i < pts.length - 1; i++)
+        len += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+      // Score: fewer waypoints (simpler path) wins, then shorter length
+      if (!best || pts.length < best.pts.length ||
+          (pts.length === best.pts.length && len < best.len)) {
+        best = { ss, ds, pts, len };
+      }
+    }
+    return best;
+  }
+
+  function toPath(pts) {
+    if (pts.length < 2) return '';
+    let d = `M${pts[0].x},${pts[0].y}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const prev = pts[i - 1], c = pts[i], next = pts[i + 1];
+      const d1 = Math.hypot(c.x - prev.x, c.y - prev.y);
+      const d2 = Math.hypot(next.x - c.x, next.y - c.y);
+      if (d1 === 0 || d2 === 0) { d += ` L${c.x},${c.y}`; continue; }
+      const r = Math.min(R, d1 / 2, d2 / 2);
+      d += ` L${c.x - (c.x - prev.x) / d1 * r},${c.y - (c.y - prev.y) / d1 * r}`;
+      d += ` Q${c.x},${c.y} ${c.x + (next.x - c.x) / d2 * r},${c.y + (next.y - c.y) / d2 * r}`;
+    }
+    d += ` L${pts[pts.length - 1].x},${pts[pts.length - 1].y}`;
+    return d;
+  }
+
+  function pathMid(pts) {
+    let total = 0;
+    const segs = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const len = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+      segs.push({ i, len }); total += len;
+    }
+    let walk = total / 2;
+    for (const s of segs) {
+      if (walk <= s.len) {
+        const t = s.len > 0 ? walk / s.len : 0;
+        return { x: pts[s.i].x + (pts[s.i + 1].x - pts[s.i].x) * t,
+                 y: pts[s.i].y + (pts[s.i + 1].y - pts[s.i].y) * t };
+      }
+      walk -= s.len;
+    }
+    return { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y };
+  }
+
+  // ── Deduplicate peering pairs ──
 
   const pairs = [];
   const drawn = new Set();
@@ -1918,19 +2045,9 @@ function renderPeeringLines(g, lk) {
     pairs.push({ sourceId, remoteId });
   });
 
-  // ── Phase 2: Assign sides & collect used ports ──
+  // ── Render connection-port icons (once per used side per VNet) ──
 
-  const usedPorts = {}; // { vnetId|side : true }
-  pairs.forEach(p => {
-    p.srcSide = facingSide(boxes[p.sourceId], boxes[p.remoteId]);
-    p.dstSide = facingSide(boxes[p.remoteId], boxes[p.sourceId]);
-    usedPorts[p.sourceId + '|' + p.srcSide] = true;
-    usedPorts[p.remoteId + '|' + p.dstSide] = true;
-  });
-
-  // ── Phase 3: Render connection-port icons (one per used side per VNet) ──
-
-  const portIcons = {}; // track rendered ports so we don't duplicate
+  const portIcons = {};
   function renderPort(vnetId, side) {
     const pk = vnetId + '|' + side;
     if (portIcons[pk]) return;
@@ -1960,133 +2077,21 @@ function renderPeeringLines(g, lk) {
       .attr('fill', 'var(--peer-color)');
   }
 
-  // ── Phase 4: Routing helpers ──
+  // ── Route & render each peering ──
 
-  function getObstacles(srcId, dstId) {
-    return Object.entries(boxes)
-      .filter(([id]) => id !== srcId && id !== dstId)
-      .map(([, b]) => pad(b, M));
-  }
-
-  // Build initial orthogonal waypoints: port → outset → [bend] → outset → port
-  function initialRoute(sp, so, sSide, dp, dout, dSide) {
-    const sH = isHoriz(sSide), dH = isHoriz(dSide);
-    if (sH && dH) {
-      if (Math.abs(so.y - dout.y) < 1) return [sp, so, dout, dp];
-      const mx = (so.x + dout.x) / 2;
-      return [sp, so, { x: mx, y: so.y }, { x: mx, y: dout.y }, dout, dp];
-    }
-    if (!sH && !dH) {
-      if (Math.abs(so.x - dout.x) < 1) return [sp, so, dout, dp];
-      const my = (so.y + dout.y) / 2;
-      return [sp, so, { x: so.x, y: my }, { x: dout.x, y: my }, dout, dp];
-    }
-    if (sH) return [sp, so, { x: dout.x, y: so.y }, dout, dp];
-    return [sp, so, { x: so.x, y: dout.y }, dout, dp];
-  }
-
-  // Iteratively reroute segments that collide with obstacle boxes
-  function avoidObstacles(pts, obs) {
-    for (let iter = 0; iter < 8; iter++) {
-      let changed = false;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const a = pts[i], b = pts[i + 1];
-        for (const o of obs) {
-          if (!segHitsBox(a.x, a.y, b.x, b.y, o)) continue;
-          const isH = Math.abs(a.y - b.y) < 1;
-          const isV = Math.abs(a.x - b.x) < 1;
-          if (isH) {
-            const above = o.y - 1, below = o.y + o.h + 1;
-            const newY = Math.abs(a.y - above) <= Math.abs(a.y - below) ? above : below;
-            pts = [...pts.slice(0, i + 1), { x: a.x, y: newY }, { x: b.x, y: newY }, ...pts.slice(i + 1)];
-          } else if (isV) {
-            const left = o.x - 1, right = o.x + o.w + 1;
-            const newX = Math.abs(a.x - left) <= Math.abs(a.x - right) ? left : right;
-            pts = [...pts.slice(0, i + 1), { x: newX, y: a.y }, { x: newX, y: b.y }, ...pts.slice(i + 1)];
-          } else {
-            pts = [...pts.slice(0, i + 1), { x: b.x, y: a.y }, ...pts.slice(i + 1)];
-          }
-          changed = true; break;
-        }
-        if (changed) break;
-      }
-      if (!changed) break;
-    }
-    // Collapse duplicate & collinear points
-    const clean = [pts[0]];
-    for (let i = 1; i < pts.length; i++) {
-      const p = pts[i], prev = clean[clean.length - 1];
-      if (Math.abs(p.x - prev.x) > 0.5 || Math.abs(p.y - prev.y) > 0.5) clean.push(p);
-    }
-    const out = [clean[0]];
-    for (let i = 1; i < clean.length - 1; i++) {
-      const prev = out[out.length - 1], c = clean[i], next = clean[i + 1];
-      if (!(Math.abs(prev.x - c.x) < 0.5 && Math.abs(c.x - next.x) < 0.5) &&
-          !(Math.abs(prev.y - c.y) < 0.5 && Math.abs(c.y - next.y) < 0.5)) out.push(c);
-    }
-    out.push(clean[clean.length - 1]);
-    return out;
-  }
-
-  // SVG path with rounded corners at each waypoint turn
-  function toPath(pts) {
-    if (pts.length < 2) return '';
-    let d = `M${pts[0].x},${pts[0].y}`;
-    for (let i = 1; i < pts.length - 1; i++) {
-      const prev = pts[i - 1], c = pts[i], next = pts[i + 1];
-      const d1 = Math.hypot(c.x - prev.x, c.y - prev.y);
-      const d2 = Math.hypot(next.x - c.x, next.y - c.y);
-      if (d1 === 0 || d2 === 0) { d += ` L${c.x},${c.y}`; continue; }
-      const r = Math.min(R, d1 / 2, d2 / 2);
-      d += ` L${c.x - (c.x - prev.x) / d1 * r},${c.y - (c.y - prev.y) / d1 * r}`;
-      d += ` Q${c.x},${c.y} ${c.x + (next.x - c.x) / d2 * r},${c.y + (next.y - c.y) / d2 * r}`;
-    }
-    d += ` L${pts[pts.length - 1].x},${pts[pts.length - 1].y}`;
-    return d;
-  }
-
-  // Walk half the total path length for label placement
-  function pathMidpoint(pts) {
-    let total = 0;
-    const segs = [];
-    for (let i = 0; i < pts.length - 1; i++) {
-      const len = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
-      segs.push({ i, len }); total += len;
-    }
-    let walk = total / 2;
-    for (const s of segs) {
-      if (walk <= s.len) {
-        const t = s.len > 0 ? walk / s.len : 0;
-        return { x: pts[s.i].x + (pts[s.i + 1].x - pts[s.i].x) * t,
-                 y: pts[s.i].y + (pts[s.i + 1].y - pts[s.i].y) * t };
-      }
-      walk -= s.len;
-    }
-    return { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y };
-  }
-
-  // ── Phase 5: Route & render each peering ──
-
-  pairs.forEach(({ sourceId, remoteId, srcSide, dstSide }) => {
-    const src = boxes[sourceId], dst = boxes[remoteId];
-    const sp = connPoint(src, srcSide);
-    const dp = connPoint(dst, dstSide);
-    const so = stepOut(sp, srcSide);
-    const dout = stepOut(dp, dstSide);
-    const raw = initialRoute(sp, so, srcSide, dp, dout, dstSide);
-    const pts = avoidObstacles(raw, getObstacles(sourceId, remoteId));
+  pairs.forEach(({ sourceId, remoteId }) => {
+    const route = bestRoute(sourceId, remoteId);
+    const { ss, ds, pts } = route;
 
     peerG.append('path')
       .attr('class', 'peering-line')
       .attr('d', toPath(pts))
       .attr('stroke', 'var(--peer-color)');
 
-    // Render port icons (once per side per VNet)
-    renderPort(sourceId, srcSide);
-    renderPort(remoteId, dstSide);
+    renderPort(sourceId, ss);
+    renderPort(remoteId, ds);
 
-    // Label at path midpoint
-    const mid = pathMidpoint(pts);
+    const mid = pathMid(pts);
     peerG.append('text')
       .attr('x', mid.x).attr('y', mid.y - 8)
       .attr('text-anchor', 'middle')

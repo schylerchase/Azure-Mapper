@@ -104,9 +104,10 @@
   .gw-name{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-secondary);pointer-events:none}
   .route-line{fill:none;stroke-width:1.5;opacity:.35;pointer-events:none}
   .peering-line{fill:none;stroke-width:2;opacity:.6;stroke-dasharray:9 9;animation:dashFlow 1.2s linear infinite}
-  .peering-port{cursor:pointer}
-  .peering-port circle{transition:r .15s,fill-opacity .15s}
-  .peering-port:hover circle{r:8;fill-opacity:.25}
+  .peering-gw{cursor:pointer}
+  .peering-gw rect{transition:fill-opacity .15s}
+  .peering-gw:hover rect{fill-opacity:.35}
+  .peering-gw text{pointer-events:none}
   @keyframes dashFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:-18}}
   .animated{animation:dashFlow 1s linear infinite}
   .export-bar{position:absolute;top:12px;right:12px;display:none;gap:4px;z-index:6;flex-direction:column}
@@ -1844,11 +1845,13 @@ function renderVnetBox(g, vnet, vx, vy, vnetW, vnetH, lk) {
   });
 }
 
-// ---- Peering Lines (orthogonal routing with single connection ports) ----
+// ---- Peering Lines (gateway + internal routing through VNets) ----
 function renderPeeringLines(g, lk) {
   const peerG = g.append('g').attr('class', 'peering-layer');
-  const boxes = {};
+  const boxes = {};       // VNet bounding boxes
+  const subBoxes = {};    // subnet boxes keyed by VNet id
 
+  // Collect VNet bounding boxes
   g.selectAll('.vnet-group').each(function() {
     const rect = d3.select(this).select('rect');
     const id = d3.select(this).attr('data-vnet-id');
@@ -1856,48 +1859,62 @@ function renderPeeringLines(g, lk) {
       const x = +rect.attr('x'), y = +rect.attr('y');
       const w = +rect.attr('width'), h = +rect.attr('height');
       boxes[id] = { x, y, w, h, cx: x + w / 2, cy: y + h / 2 };
+      subBoxes[id] = [];
     }
   });
 
-  const M = 20, R = 8;
+  // Collect subnet boxes inside each VNet (by spatial containment)
+  g.selectAll('.subnet-node').each(function() {
+    const rect = d3.select(this).select('rect');
+    if (!rect.node()) return;
+    const x = +rect.attr('x'), y = +rect.attr('y');
+    const w = +rect.attr('width'), h = +rect.attr('height');
+    for (const [vId, vb] of Object.entries(boxes)) {
+      if (x >= vb.x && y >= vb.y && x + w <= vb.x + vb.w && y + h <= vb.y + vb.h) {
+        subBoxes[vId].push({ x, y, w, h });
+        break;
+      }
+    }
+  });
+
+  const M = 20, R = 8, IM = 6;  // IM = internal margin around subnets
+
+  // ── Shared geometry helpers ──
 
   function pad(b, m) { return { x: b.x - m, y: b.y - m, w: b.w + 2 * m, h: b.h + 2 * m }; }
 
-  function segHitsBox(x1, y1, x2, y2, b) {
+  function segHits(x1, y1, x2, y2, b) {
     return !(Math.max(x1, x2) < b.x || Math.min(x1, x2) > b.x + b.w ||
              Math.max(y1, y2) < b.y || Math.min(y1, y2) > b.y + b.h);
   }
 
-  function connPoint(box, side) {
+  function connPt(box, side) {
     if (side === 'right')  return { x: box.x + box.w, y: box.cy };
     if (side === 'left')   return { x: box.x, y: box.cy };
     if (side === 'bottom') return { x: box.cx, y: box.y + box.h };
     return { x: box.cx, y: box.y };
   }
 
-  function facingSide(src, dst) {
+  function facing(src, dst) {
     const dx = dst.cx - src.cx, dy = dst.cy - src.cy;
     if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'right' : 'left';
     return dy >= 0 ? 'bottom' : 'top';
   }
 
-  function sOut(pt, side) {
-    if (side === 'right') return { x: pt.x + M, y: pt.y };
-    if (side === 'left')  return { x: pt.x - M, y: pt.y };
-    if (side === 'bottom') return { x: pt.x, y: pt.y + M };
-    return { x: pt.x, y: pt.y - M };
+  function stepOut(pt, side, dist) {
+    if (side === 'right') return { x: pt.x + dist, y: pt.y };
+    if (side === 'left')  return { x: pt.x - dist, y: pt.y };
+    if (side === 'bottom') return { x: pt.x, y: pt.y + dist };
+    return { x: pt.x, y: pt.y - dist };
   }
+  function stepIn(pt, side, dist) { return stepOut(pt, side, -dist); }
 
-  function isH(side) { return side === 'left' || side === 'right'; }
+  function hSide(s) { return s === 'left' || s === 'right'; }
 
-  function getObs(srcId, dstId) {
-    return Object.entries(boxes)
-      .filter(([id]) => id !== srcId && id !== dstId)
-      .map(([, b]) => pad(b, M));
-  }
+  // ── Orthogonal route builder ──
 
-  function makeRoute(sp, so, ss, dp, dout, ds) {
-    const sH = isH(ss), dH = isH(ds);
+  function orthoRoute(sp, so, ss, dp, dout, ds) {
+    const sH = hSide(ss), dH = hSide(ds);
     if (sH && dH) {
       if (Math.abs(so.y - dout.y) < 1) return [sp, so, dout, dp];
       const mx = (so.x + dout.x) / 2;
@@ -1912,13 +1929,15 @@ function renderPeeringLines(g, lk) {
     return [sp, so, { x: so.x, y: dout.y }, dout, dp];
   }
 
+  // ── Collision fixer (reusable for external & internal routing) ──
+
   function fixCollisions(pts, obs) {
     for (let iter = 0; iter < 8; iter++) {
       let changed = false;
       for (let i = 0; i < pts.length - 1; i++) {
         const a = pts[i], b = pts[i + 1];
         for (const o of obs) {
-          if (!segHitsBox(a.x, a.y, b.x, b.y, o)) continue;
+          if (!segHits(a.x, a.y, b.x, b.y, o)) continue;
           if (Math.abs(a.y - b.y) < 1) {
             const above = o.y - 1, below = o.y + o.h + 1;
             const nY = Math.abs(a.y - above) <= Math.abs(a.y - below) ? above : below;
@@ -1936,7 +1955,6 @@ function renderPeeringLines(g, lk) {
       }
       if (!changed) break;
     }
-    // Collapse duplicate & collinear
     const cl = [pts[0]];
     for (let i = 1; i < pts.length; i++) {
       const p = pts[i], v = cl[cl.length - 1];
@@ -1952,42 +1970,59 @@ function renderPeeringLines(g, lk) {
     return out;
   }
 
-  // Try multiple side pairs and pick the shortest / simplest route
-  function bestRoute(srcId, dstId) {
-    const src = boxes[srcId], dst = boxes[dstId];
-    const obs = getObs(srcId, dstId);
-    const ns = facingSide(src, dst), nd = facingSide(dst, src);
+  // ── External route (between VNet gateways, around other VNets) ──
 
-    const tries = [
-      [ns, nd],
-      ['top', 'top'], ['bottom', 'bottom'],
-      ['left', 'left'], ['right', 'right'],
-    ];
-    // Remove duplicates
+  function extObs(srcId, dstId) {
+    return Object.entries(boxes)
+      .filter(([id]) => id !== srcId && id !== dstId)
+      .map(([, b]) => pad(b, M));
+  }
+
+  function bestExtRoute(srcId, dstId) {
+    const src = boxes[srcId], dst = boxes[dstId];
+    const obs = extObs(srcId, dstId);
+    const ns = facing(src, dst), nd = facing(dst, src);
+    const tries = [[ns, nd], ['top', 'top'], ['bottom', 'bottom'], ['left', 'left'], ['right', 'right']];
     const seen = new Set();
-    const unique = tries.filter(([a, b]) => {
-      const k = a + '|' + b;
-      if (seen.has(k)) return false;
-      seen.add(k); return true;
-    });
+    const unique = tries.filter(([a, b]) => { const k = a + '|' + b; if (seen.has(k)) return false; seen.add(k); return true; });
 
     let best = null;
     for (const [ss, ds] of unique) {
-      const sp = connPoint(src, ss), dp = connPoint(dst, ds);
-      const so = sOut(sp, ss), dout = sOut(dp, ds);
-      const raw = makeRoute(sp, so, ss, dp, dout, ds);
+      const sp = connPt(src, ss), dp = connPt(dst, ds);
+      const so = stepOut(sp, ss, M), dout = stepOut(dp, ds, M);
+      const raw = orthoRoute(sp, so, ss, dp, dout, ds);
       const pts = fixCollisions(raw.map(p => ({ ...p })), obs);
       let len = 0;
-      for (let i = 0; i < pts.length - 1; i++)
-        len += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
-      // Score: fewer waypoints (simpler path) wins, then shorter length
-      if (!best || pts.length < best.pts.length ||
-          (pts.length === best.pts.length && len < best.len)) {
+      for (let i = 0; i < pts.length - 1; i++) len += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+      if (!best || pts.length < best.pts.length || (pts.length === best.pts.length && len < best.len))
         best = { ss, ds, pts, len };
-      }
     }
     return best;
   }
+
+  // ── Internal route (gateway → VNet centre, around subnets) ──
+
+  function intRoute(vnetId, gwPt, gwSide) {
+    const vb = boxes[vnetId];
+    const cx = vb.cx, cy = vb.cy;
+    const obs = (subBoxes[vnetId] || []).map(b => pad(b, IM));
+    const inDist = 12;
+    const inPt = stepIn(gwPt, gwSide, inDist);
+
+    let pts;
+    if (hSide(gwSide)) {
+      pts = Math.abs(inPt.y - cy) < 1
+        ? [gwPt, inPt, { x: cx, y: cy }]
+        : [gwPt, inPt, { x: inPt.x, y: cy }, { x: cx, y: cy }];
+    } else {
+      pts = Math.abs(inPt.x - cx) < 1
+        ? [gwPt, inPt, { x: cx, y: cy }]
+        : [gwPt, inPt, { x: cx, y: inPt.y }, { x: cx, y: cy }];
+    }
+    return fixCollisions(pts, obs);
+  }
+
+  // ── SVG path with rounded corners ──
 
   function toPath(pts) {
     if (pts.length < 2) return '';
@@ -2005,6 +2040,7 @@ function renderPeeringLines(g, lk) {
     return d;
   }
 
+  // Walk half the total path length
   function pathMid(pts) {
     let total = 0;
     const segs = [];
@@ -2045,20 +2081,18 @@ function renderPeeringLines(g, lk) {
     pairs.push({ sourceId, remoteId });
   });
 
-  // ── Render connection-port icons (once per used side per VNet) ──
+  // ── Render gateway icon (once per used side per VNet) ──
 
-  const portIcons = {};
-  function renderPort(vnetId, side) {
+  const gwIcons = {};
+  function renderGw(vnetId, side) {
     const pk = vnetId + '|' + side;
-    if (portIcons[pk]) return;
-    portIcons[pk] = true;
-    const pt = connPoint(boxes[vnetId], side);
-    const portG = peerG.append('g').attr('class', 'peering-port')
+    if (gwIcons[pk]) return;
+    gwIcons[pk] = true;
+    const pt = connPt(boxes[vnetId], side);
+    const bw = 28, bh = 14;
+    const gwG = peerG.append('g').attr('class', 'peering-gw')
       .attr('transform', `translate(${pt.x},${pt.y})`)
-      .on('click', () => {
-        const p = lk.peeringsByVnet[vnetId]?.[0];
-        if (p) openPeeringPanel(p.id);
-      })
+      .on('click', () => { const p = lk.peeringsByVnet[vnetId]?.[0]; if (p) openPeeringPanel(p.id); })
       .on('mouseenter', function(event) {
         const vnet = lk.vnetById[vnetId?.toLowerCase()];
         const vName = vnet ? shortName(vnet) : '?';
@@ -2070,30 +2104,49 @@ function renderPeeringLines(g, lk) {
       })
       .on('mouseleave', hideTooltip)
       .on('mousemove', moveTooltip);
-    portG.append('circle').attr('r', 6)
-      .attr('fill', 'var(--peer-color)').attr('fill-opacity', .15)
-      .attr('stroke', 'var(--peer-color)').attr('stroke-width', 1.5);
-    portG.append('circle').attr('r', 2.5)
-      .attr('fill', 'var(--peer-color)');
+    gwG.append('rect')
+      .attr('x', -bw / 2).attr('y', -bh / 2)
+      .attr('width', bw).attr('height', bh).attr('rx', 4)
+      .attr('fill', 'var(--peer-color)').attr('fill-opacity', .18)
+      .attr('stroke', 'var(--peer-color)').attr('stroke-width', 1.2);
+    gwG.append('text')
+      .attr('text-anchor', 'middle').attr('dy', '0.35em')
+      .attr('fill', 'var(--peer-color)')
+      .attr('font-family', "'IBM Plex Mono',monospace")
+      .attr('font-size', '8px').attr('font-weight', '600')
+      .text('GW');
   }
 
-  // ── Route & render each peering ──
+  // ── Build full path & render each peering ──
 
   pairs.forEach(({ sourceId, remoteId }) => {
-    const route = bestRoute(sourceId, remoteId);
-    const { ss, ds, pts } = route;
+    const ext = bestExtRoute(sourceId, remoteId);
+    const { ss, ds, pts: extPts } = ext;
+
+    // Internal routes: gateway → VNet centre (around subnets)
+    const intSrc = intRoute(sourceId, extPts[0], ss);
+    const intDst = intRoute(remoteId, extPts[extPts.length - 1], ds);
+
+    // Stitch: centre_src ← int_src ... gw_src === external === gw_dst ... int_dst → centre_dst
+    const srcRev = intSrc.slice().reverse();  // [centre, ..., gwPt]
+    const fullPts = [
+      ...srcRev,                     // centre → gw_src
+      ...extPts.slice(1, -1),        // external middle (gw endpoints already included)
+      ...intDst                      // gw_dst → centre
+    ];
 
     peerG.append('path')
       .attr('class', 'peering-line')
-      .attr('d', toPath(pts))
+      .attr('d', toPath(fullPts))
       .attr('stroke', 'var(--peer-color)');
 
-    renderPort(sourceId, ss);
-    renderPort(remoteId, ds);
+    renderGw(sourceId, ss);
+    renderGw(remoteId, ds);
 
-    const mid = pathMid(pts);
+    // Label on the external segment (midpoint of external path only)
+    const extMid = pathMid(extPts);
     peerG.append('text')
-      .attr('x', mid.x).attr('y', mid.y - 8)
+      .attr('x', extMid.x).attr('y', extMid.y - 8)
       .attr('text-anchor', 'middle')
       .attr('fill', 'var(--peer-color)')
       .attr('font-family', "'IBM Plex Mono',monospace")

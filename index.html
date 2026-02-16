@@ -103,7 +103,10 @@
   .gw-id{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-muted);pointer-events:none;opacity:.6}
   .gw-name{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-secondary);pointer-events:none}
   .route-line{fill:none;stroke-width:1.5;opacity:.35;pointer-events:none}
-  .peering-line{fill:none;stroke-width:2;opacity:.35;stroke-dasharray:9 9;animation:dashFlow 1.2s linear infinite}
+  .peering-line{fill:none;stroke-width:2;opacity:.6;stroke-dasharray:9 9;animation:dashFlow 1.2s linear infinite}
+  .peering-port{cursor:pointer}
+  .peering-port circle{transition:r .15s,fill-opacity .15s}
+  .peering-port:hover circle{r:8;fill-opacity:.25}
   @keyframes dashFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:-18}}
   .animated{animation:dashFlow 1s linear infinite}
   .export-bar{position:absolute;top:12px;right:12px;display:none;gap:4px;z-index:6;flex-direction:column}
@@ -525,26 +528,30 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
   const btn = document.getElementById('sidebarToggle');
   sb.classList.toggle('collapsed');
   btn.innerHTML = sb.classList.contains('collapsed') ? '&#x25B6;' : '&#x25C0;';
-  // Show/hide mobile backdrop
-  const bd = document.getElementById('mobileBackdrop');
-  if (bd) { bd.style.display = (!sb.classList.contains('collapsed') && _isMobile()) ? 'block' : 'none' }
+  if (!_isElectron) {
+    // Show/hide mobile backdrop (browser only)
+    const bd = document.getElementById('mobileBackdrop');
+    if (bd) { bd.style.display = (!sb.classList.contains('collapsed') && _isMobile()) ? 'block' : 'none' }
+  }
   if (!_isMobile()) savePrefs({ sidebarCollapsed: sb.classList.contains('collapsed') });
 });
-// Mobile backdrop: tap to close sidebar
-(function() {
-  const bd = document.createElement('div');
-  bd.id = 'mobileBackdrop';
-  bd.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;backdrop-filter:blur(2px)';
-  document.body.appendChild(bd);
-  bd.addEventListener('click', () => {
-    const sb = document.querySelector('.sidebar');
-    sb.classList.add('collapsed');
-    document.getElementById('sidebarToggle').innerHTML = '&#x25B6;';
-    bd.style.display = 'none';
-  });
-})();
-// Restore sidebar state (collapse on mobile by default)
-if (_prefs.sidebarCollapsed || _isMobile()) {
+// Mobile backdrop: browser only (not needed in Electron desktop app)
+if (!_isElectron) {
+  (function() {
+    const bd = document.createElement('div');
+    bd.id = 'mobileBackdrop';
+    bd.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;backdrop-filter:blur(2px)';
+    document.body.appendChild(bd);
+    bd.addEventListener('click', () => {
+      const sb = document.querySelector('.sidebar');
+      sb.classList.add('collapsed');
+      document.getElementById('sidebarToggle').innerHTML = '&#x25B6;';
+      bd.style.display = 'none';
+    });
+  })();
+}
+// Restore sidebar state (collapse on mobile by default, not in Electron)
+if (_prefs.sidebarCollapsed || (!_isElectron && _isMobile())) {
   document.querySelector('.sidebar').classList.add('collapsed');
   document.getElementById('sidebarToggle').innerHTML = '&#x25B6;';
 }
@@ -733,7 +740,7 @@ const INPUT_SECTIONS = [
 (function buildSidebar() {
   const body = document.getElementById('sidebarBody');
   let html = '';
-  const mobile = _isMobile();
+  const mobile = !_isElectron && _isMobile();
   INPUT_SECTIONS.forEach((sec, si) => {
     const startCollapsed = mobile || si > 3;
     html += `<div class="sec-hdr${startCollapsed ? ' collapsed' : ''}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')"><span>${esc(sec.title)}</span><span class="arr">&#9660;</span></div>`;
@@ -1252,7 +1259,7 @@ function _renderMapInner() {
 
   // Show legend and export bar
   document.getElementById('legend').style.display = 'flex';
-  if (_isMobile()) document.getElementById('legend').classList.add('collapsed');
+  if (!_isElectron && _isMobile()) document.getElementById('legend').classList.add('collapsed');
   document.getElementById('exportBar').style.display = 'flex';
 
   // Hide Flow button in Executive mode (reporting only — no network tracing)
@@ -1836,14 +1843,37 @@ function renderPeeringLines(g, lk) {
     const rect = d3.select(this).select('rect');
     const vnetId = d3.select(this).attr('data-vnet-id');
     if (rect.node()) {
-      vnetPositions[vnetId] = {
-        x: +rect.attr('x'), y: +rect.attr('y'),
-        w: +rect.attr('width'), h: +rect.attr('height'),
-        cx: +rect.attr('x') + +rect.attr('width') / 2,
-        cy: +rect.attr('y') + +rect.attr('height') / 2
-      };
+      const x = +rect.attr('x'), y = +rect.attr('y');
+      const w = +rect.attr('width'), h = +rect.attr('height');
+      vnetPositions[vnetId] = { x, y, w, h, cx: x + w / 2, cy: y + h / 2 };
     }
   });
+
+  // Find where a line from inside (cx,cy) to outside (tx,ty) crosses the rect boundary
+  function edgeIntersection(box, tx, ty) {
+    const cx = box.cx, cy = box.cy;
+    const dx = tx - cx, dy = ty - cy;
+    if (dx === 0 && dy === 0) return { x: cx, y: cy };
+    // Check intersection with all 4 edges, pick the closest one along the direction
+    const candidates = [];
+    // Right edge
+    if (dx > 0) { const t = (box.x + box.w - cx) / dx; candidates.push({ t, x: box.x + box.w, y: cy + t * dy }); }
+    // Left edge
+    if (dx < 0) { const t = (box.x - cx) / dx; candidates.push({ t, x: box.x, y: cy + t * dy }); }
+    // Bottom edge
+    if (dy > 0) { const t = (box.y + box.h - cy) / dy; candidates.push({ t, x: cx + t * dx, y: box.y + box.h }); }
+    // Top edge
+    if (dy < 0) { const t = (box.y - cy) / dy; candidates.push({ t, x: cx + t * dx, y: box.y }); }
+    // Pick smallest positive t that falls within the rect edges
+    let best = null;
+    for (const c of candidates) {
+      if (c.t > 0 && c.x >= box.x - 0.5 && c.x <= box.x + box.w + 0.5 &&
+          c.y >= box.y - 0.5 && c.y <= box.y + box.h + 0.5) {
+        if (!best || c.t < best.t) best = c;
+      }
+    }
+    return best || { x: cx, y: cy };
+  }
 
   const drawn = new Set();
   lk.peerings.forEach(peer => {
@@ -1867,17 +1897,50 @@ function renderPeeringLines(g, lk) {
     const dst = vnetPositions[remoteId];
     if (!src || !dst) return;
 
-    peerG.append('line')
+    // Calculate edge intersection points (where the line exits/enters each VNet boundary)
+    const srcEdge = edgeIntersection(src, dst.cx, dst.cy);
+    const dstEdge = edgeIntersection(dst, src.cx, src.cy);
+
+    // Draw peering line from edge to edge
+    const mx = (srcEdge.x + dstEdge.x) / 2;
+    const my = (srcEdge.y + dstEdge.y) / 2;
+
+    peerG.append('path')
       .attr('class', 'peering-line')
-      .attr('x1', src.cx).attr('y1', src.cy)
-      .attr('x2', dst.cx).attr('y2', dst.cy)
+      .attr('d', `M${srcEdge.x},${srcEdge.y} L${mx},${my} L${dstEdge.x},${dstEdge.y}`)
       .attr('stroke', 'var(--peer-color)');
 
+    // Port icons on the VNet boundaries (small gateway dots)
+    const portR = 6;
+    [{ edge: srcEdge, vnetId: sourceId }, { edge: dstEdge, vnetId: remoteId }].forEach(({ edge, vnetId }) => {
+      const portG = peerG.append('g').attr('class', 'peering-port')
+        .attr('transform', `translate(${edge.x},${edge.y})`)
+        .on('click', () => {
+          // Open peering panel for the first peering on this VNet
+          const p = lk.peeringsByVnet[vnetId]?.[0];
+          if (p) openPeeringPanel(p.id);
+        })
+        .on('mouseenter', function(event) {
+          const vnet = lk.vnetById[vnetId?.toLowerCase()];
+          const vName = vnet ? shortName(vnet) : '?';
+          const peerList = (lk.peeringsByVnet[vnetId] || []).map(p => {
+            const remote = lk.vnetById[(p.remoteVirtualNetwork?.id || '').toLowerCase()];
+            return `${esc(p.name || '')} → ${esc(remote ? shortName(remote) : '?')} (${esc(p.peeringState || '?')})`;
+          }).join('<br>');
+          showTooltip(event, `<div class="tt-title">Peering Gateway</div><div class="tt-sub">${esc(vName)}</div><div class="tt-sec"><div class="tt-sh">Connections</div><div class="tt-r">${peerList}</div></div>`);
+        })
+        .on('mouseleave', hideTooltip)
+        .on('mousemove', moveTooltip);
+      portG.append('circle').attr('r', portR)
+        .attr('fill', 'var(--peer-color)').attr('fill-opacity', .15)
+        .attr('stroke', 'var(--peer-color)').attr('stroke-width', 1.5);
+      portG.append('circle').attr('r', 2.5)
+        .attr('fill', 'var(--peer-color)');
+    });
+
     // Midpoint label
-    const mx = (src.cx + dst.cx) / 2;
-    const my = (src.cy + dst.cy) / 2;
     peerG.append('text')
-      .attr('x', mx).attr('y', my - 6)
+      .attr('x', mx).attr('y', my - 8)
       .attr('text-anchor', 'middle')
       .attr('fill', 'var(--peer-color)')
       .attr('font-family', "'IBM Plex Mono',monospace")
@@ -2978,6 +3041,8 @@ function openFlowPanel(srcIp, dstIp, dstPort, protocol) {
 // Flow form (Shift+T shortcut)
 function openFlowForm() {
   if (!_lk || !_lk.vnets) return;
+  // Flow tracing is not available in Executive Overview mode
+  if (document.getElementById('layoutMode').value === 'executive') return;
   // Collect known IPs for suggestions
   const knownIps = [];
   _lk.nics.forEach(nic => {
@@ -4545,15 +4610,17 @@ document.getElementById('layoutMode').addEventListener('change', () => {
 // ---- Apply initial text scale ----
 applyGlobalTxtScale();
 
-// ---- iOS gesture conflict fix: prevent pinch-zoom on map container only ----
-(function() {
-  const mapSvg = document.getElementById('mapSvg');
-  if (mapSvg) {
-    mapSvg.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
-    mapSvg.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
-    mapSvg.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
-  }
-})();
+// ---- iOS gesture conflict fix: prevent pinch-zoom on map container (browser only) ----
+if (!_isElectron) {
+  (function() {
+    const mapSvg = document.getElementById('mapSvg');
+    if (mapSvg) {
+      mapSvg.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+      mapSvg.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
+      mapSvg.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
+    }
+  })();
+}
 
 // ============================================================
 // SELF-TEST SUITE

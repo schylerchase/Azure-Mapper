@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'">
 <title>Azure Network Topology Map</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -60,7 +60,7 @@
   .btn-secondary{background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border)}.btn-secondary:hover{background:var(--border);color:var(--text-primary)}
   .btn-demo{background:transparent;color:var(--accent-cyan);border:1px solid var(--accent-cyan);opacity:.7}.btn-demo:hover{opacity:1;background:rgba(6,182,212,.08)}
   .main{flex:1;position:relative;background:var(--bg-primary);overflow:hidden}
-  .main svg{width:100%;height:100%;display:block}
+  .main svg{width:100%;height:100%;display:block;touch-action:none}
   .grid-bg{position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px,rgba(50,70,100,.35) 1px,transparent 0);background-size:24px 24px;pointer-events:none}
   .empty-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
   .empty-state .icon{width:80px;height:80px;border:2px dashed var(--border);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;color:var(--text-muted);font-size:32px}
@@ -100,8 +100,8 @@
   .subnet-badge{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));font-weight:600;pointer-events:none}
   .gw-node{cursor:pointer}
   .gw-label{font-family:'IBM Plex Mono',monospace;font-size:calc(10px * var(--txt-scale));font-weight:600;pointer-events:none}
-  .gw-id{font-family:'IBM Plex Mono',monospace;font-size:calc(7px * var(--txt-scale));fill:var(--text-muted);pointer-events:none;opacity:.6}
-  .gw-name{font-family:'IBM Plex Mono',monospace;font-size:calc(9px * var(--txt-scale));fill:var(--text-primary);font-weight:500;pointer-events:none}
+  .gw-id{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-muted);pointer-events:none;opacity:.6}
+  .gw-name{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-secondary);pointer-events:none}
   .route-line{fill:none;stroke-width:1.5;opacity:.35;pointer-events:none}
   .peering-line{fill:none;stroke-width:2;opacity:.35;stroke-dasharray:9 9;animation:dashFlow 1.2s linear infinite}
   @keyframes dashFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:-18}}
@@ -189,56 +189,182 @@
   /* ============================================================
      MOBILE-FRIENDLY OVERRIDES
      ============================================================ */
-  @media (max-width:768px) {
-    /* --- Fix 1: Mobile viewport — use svh so content ends above Safari toolbar --- */
-    body{height:100svh;height:-webkit-fill-available}
-    .sidebar{height:100svh;height:-webkit-fill-available}
 
-    /* --- Fix 2: Sidebar on mobile — compact & pinned actions --- */
-    .sidebar{width:100vw;min-width:100vw}
-    .sidebar.collapsed{width:0;min-width:0}
-    .sidebar-toggle{left:calc(100vw - 36px);top:8px}
+  /* --- TABLET: (max-width 1024px) --- */
+  @media (max-width:1024px){
+    .sidebar{width:300px;min-width:300px}
+    .sidebar-toggle{left:300px}
     .sidebar.collapsed~.sidebar-toggle{left:4px}
-    .sidebar-header{padding:10px 14px}
-    .sidebar-header h1{font-size:12px;letter-spacing:1px}
-    .sidebar-header p{font-size:10px}
-    .sec-hdr{padding:6px 12px}
-    .sec-hdr span{font-size:9px}
-    .sec-body{padding:4px 8px}
-    .ig{margin-bottom:4px}
-    .ji{height:40px;font-size:9px;padding:4px 6px}
-    .btn{padding:7px 10px;font-size:10px}
-    .sidebar-actions{
-      position:sticky;bottom:0;
-      padding:8px 10px calc(12px + env(safe-area-inset-bottom, 0px));
-      background:var(--bg-secondary);
-      border-top:1px solid var(--border);
-      z-index:12;
-    }
-
-    /* --- Fix 3: Pinch/zoom prevention scoped to map only (via CSS touch-action) --- */
-    .main svg{touch-action:none}
-
-    /* --- Fix 4: Zoom controls & legend — raise z-index and bottom offsets --- */
-    .zoom-controls{z-index:15;bottom:calc(52px + env(safe-area-inset-bottom, 0px));right:12px}
-    .legend{z-index:15;bottom:calc(52px + env(safe-area-inset-bottom, 0px));left:12px}
-    .hl-locked-indicator{bottom:calc(52px + env(safe-area-inset-bottom, 0px))}
-
-    /* --- Fix 5: Detail panel header — left padding to clear sidebar toggle --- */
-    .dp-header{padding-left:56px}
-    .detail-panel{width:100vw}
-
-    /* Bottom toolbar adjustments for mobile */
-    .stats-bar{padding:0 12px}
-    .export-bar{right:8px;top:8px}
+    .detail-panel{width:360px}
+    .stats-bar{padding:0 380px 0 32px}
+    .main:has(.detail-panel.open) .stats-bar{padding-right:740px}
+    .main:has(.detail-panel.open) .export-bar{right:372px}
   }
 
-  /* Safe-area-aware devices (notched iPhones etc.) */
-  @supports (padding-bottom: env(safe-area-inset-bottom)) {
-    @media (max-width:768px) {
-      .sidebar-actions{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  /* --- PHONE / SMALL TABLET: (max-width 768px) --- */
+  @media (max-width:768px){
+    body{flex-direction:column}
+
+    /* Sidebar: full-width overlay. Use svh so it ends above Safari's toolbar. */
+    .sidebar{position:fixed;top:0;left:0;width:100vw;min-width:100vw;height:100vh;height:100svh;z-index:100;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden}
+    .sidebar:not(.collapsed){transform:translateX(0)}
+    .sidebar.collapsed{width:100vw;min-width:100vw;overflow:hidden;transform:translateX(-100%)}
+    /* Sidebar body: must scroll, flex-shrink so actions stay pinned at bottom */
+    .sidebar-body{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch}
+    /* Upload row: compact on mobile */
+    .upload-row{padding:6px 10px}
+    .upload-status{padding:0 10px}
+
+    /* Sidebar toggle: compact hamburger top-left */
+    .sidebar-toggle{position:fixed;top:8px;left:8px;z-index:101;width:34px;height:34px;font-size:16px;border-radius:6px;background:rgba(17,24,39,.95);backdrop-filter:blur(8px);border:1px solid var(--border)}
+    .sidebar.collapsed~.sidebar-toggle{left:8px}
+    .sidebar:not(.collapsed)~.sidebar-toggle{left:calc(100vw - 42px);z-index:101}
+
+    /* Sidebar header: compact on mobile */
+    .sidebar-header{padding:10px 14px}
+    .sidebar-header h1{font-size:13px;margin-bottom:1px}
+    .sidebar-header p{font-size:9px}
+    .global-txt-ctrl{margin-top:4px}
+
+    /* Sidebar actions: pinned at bottom (sidebar is 100svh, so already above toolbar) */
+    .sidebar-actions{padding:10px 12px 16px;gap:8px;flex-shrink:0;border-top:1px solid var(--border);background:var(--bg-secondary)}
+    .btn{padding:10px 12px;font-size:calc(11px * var(--txt-scale))}
+    .btn-upload{padding:10px 12px;font-size:11px}
+
+    /* Sidebar sections: compact inputs, all collapsed by default (via JS) */
+    .ji{height:44px;font-size:calc(10px * var(--txt-scale))}
+    .ig{padding:4px 10px}
+    .ig-lbl{margin-bottom:2px}
+    .ig-lbl code{font-size:8px}
+    .sec-hdr{padding:8px 12px}
+    .sec-hdr span{font-size:calc(9px * var(--txt-scale))}
+
+    /* Main fills viewport — use svh so bottom elements clear Safari toolbar */
+    .main{width:100vw;height:100vh;height:100svh}
+
+    /* Detail panel: full-width overlay from bottom — use svh to clear Safari toolbar */
+    .detail-panel{width:100vw;height:70vh;height:70svh;top:auto;bottom:0;border-left:none;border-top:1px solid var(--border);border-radius:16px 16px 0 0}
+    .dp-header{padding:16px;padding-left:56px}
+    .dp-close{width:36px;height:36px;font-size:18px}
+    .dp-sec-hdr{padding:12px 16px}
+
+    /* Stats bar: hide on mobile */
+    .stats-bar{display:none !important}
+
+    /* Export bar: small toggle top-right */
+    .export-bar{top:8px;right:8px}
+    .main:has(.detail-panel.open) .export-bar{right:8px}
+    .export-btn{padding:8px 12px;font-size:calc(11px * var(--txt-scale))}
+    .eb-toggle{padding:5px 10px;font-size:9px}
+
+    /* Hide layout selector row in export bar on mobile */
+    .export-bar>div:has(#layoutMode){display:none}
+
+    /* Zoom controls: above bottom toolbar */
+    .zoom-controls{bottom:52px;right:10px;z-index:15}
+    .zoom-btn{width:36px;height:36px;font-size:17px;border-radius:6px}
+
+    /* Legend: above bottom toolbar */
+    .legend{bottom:52px;left:10px;max-width:160px;font-size:8px;padding:6px 10px;z-index:15}
+    .legend-item{font-size:8px;gap:5px}
+    .legend-swatch{width:8px;height:8px}
+    .legend .legend-hint{display:none}
+    .legend-title{font-size:8px}
+
+    /* Bottom toolbar: scrollable on mobile */
+    #bottomToolbar{left:0 !important;right:0 !important;transform:none !important;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 10px 6px !important;gap:5px !important;scrollbar-width:none}
+    #bottomToolbar::-webkit-scrollbar{display:none}
+    #bottomToolbar button{flex-shrink:0;font-size:10px;height:28px;padding:0 10px}
+
+    /* Locked indicator */
+    .hl-locked-indicator{font-size:8px;padding:4px 10px;bottom:70px}
+
+    /* Tooltip: responsive width */
+    .tooltip{max-width:85vw;min-width:160px}
+
+    /* Empty state: responsive */
+    .empty-state .icon{width:60px;height:60px;font-size:24px}
+    .empty-state h2{font-size:13px}
+    .empty-state p{font-size:11px}
+
+    /* IaC modal: full screen */
+    #scanModal>div{width:100vw;max-height:100vh;border-radius:0}
+  }
+
+  /* --- SMALL PHONE: iPhone SE, narrow Android (max-width 430px) --- */
+  @media (max-width:430px){
+    /* Export buttons: hide descriptions */
+    .export-btn span{display:none}
+
+    /* Zoom controls: even smaller */
+    .zoom-controls{bottom:10px;right:8px}
+    .zoom-btn{width:32px;height:32px;font-size:15px}
+
+    .detail-panel{height:85vh;height:85svh}
+
+    /* Legend: extra compact */
+    .legend{padding:5px 8px;max-width:140px}
+    .legend-swatch{width:7px;height:7px}
+
+    /* Sidebar header */
+    .sidebar-header h1{font-size:13px}
+    .sidebar-header p{font-size:10px}
+  }
+
+  /* Mobile drag handle for bottom sheets */
+  .dp-drag-handle{display:none;padding:8px 0 4px;cursor:grab;touch-action:none}
+  .dp-drag-bar{width:36px;height:4px;background:var(--text-muted);border-radius:2px;margin:0 auto;opacity:.5}
+  @media (max-width:768px){
+    .dp-drag-handle{display:block}
+  }
+
+  /* --- TOUCH DEVICE ENHANCEMENTS --- */
+  @media (hover:none) and (pointer:coarse){
+    /* Larger tap targets for touch */
+    .sidebar-toggle{width:40px;height:40px;font-size:20px}
+    .zoom-btn{min-width:36px;min-height:36px}
+    .dp-close{min-width:36px;min-height:36px}
+    .gtc-btn{width:32px;height:32px;font-size:16px}
+    .sec-hdr{padding:10px 14px}
+    .dp-sec-hdr{padding:12px 16px;min-height:44px}
+    .btn{min-height:44px}
+    .btn-upload{min-height:44px}
+    .export-btn{min-height:44px}
+
+    /* Remove hover-only states on touch */
+    .stat-chip:hover,.export-btn:hover,.zoom-btn:hover{background:initial}
+
+    /* Smooth scrolling for touch */
+    .sidebar-body,.dp-body{
+      -webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+
+    /* Prevent text selection on interactive elements */
+    .btn,.zoom-btn,.export-btn,.stat-chip,.sidebar-toggle,.dp-close,.gtc-btn{
+      -webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
+  }
+
+  /* --- LANDSCAPE PHONE --- */
+  @media (max-width:768px) and (max-height:500px) and (orientation:landscape){
+    .detail-panel{height:100vh;height:100svh;border-radius:0}
+    .zoom-controls{bottom:8px;right:6px}
+    .zoom-btn{width:30px;height:30px;font-size:14px}
+    .legend{bottom:8px;left:6px;max-width:130px}
+  }
+
+  /* --- SAFE AREA INSETS for notched phones (iPhone X+) ---
+       .main already uses height:100svh so bottom:0 = above Safari toolbar.
+       env(safe-area-inset-bottom) only adds clearance for the home indicator. */
+  @supports (padding: env(safe-area-inset-top)){
+    @media (max-width:768px){
+      .sidebar-header{padding-top:calc(14px + env(safe-area-inset-top))}
+      .sidebar-toggle{top:calc(8px + env(safe-area-inset-top))}
+      .export-bar{top:calc(8px + env(safe-area-inset-top))}
+      #bottomToolbar{bottom:calc(12px + env(safe-area-inset-bottom)) !important}
       .zoom-controls{bottom:calc(52px + env(safe-area-inset-bottom))}
       .legend{bottom:calc(52px + env(safe-area-inset-bottom))}
+      .detail-panel{padding-bottom:env(safe-area-inset-bottom)}
+      .sidebar-actions{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+      .hl-locked-indicator{bottom:calc(52px + env(safe-area-inset-bottom))}
     }
   }
 </style>
@@ -314,7 +440,7 @@
     <button class="export-btn" onclick="openIaCModal('bicep')">Bicep<span>DSL export</span></button>
     <button class="export-btn" onclick="openSnapshotPanel()">Snapshots<span>Save / restore states</span></button>
   </div>
-  <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:7;display:flex;gap:6px;align-items:center">
+  <div id="bottomToolbar" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:7;display:flex;gap:6px;align-items:center">
     <button id="saveProjectBtn" style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--accent-green);color:var(--accent-green);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="Save project (Ctrl+S)">Save</button>
     <button id="loadProjectBtn" style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--accent-orange);color:var(--accent-orange);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="Load project from file">Open</button>
     <div style="width:1px;height:18px;background:var(--border);opacity:.5"></div>
@@ -354,6 +480,7 @@
   <div class="hl-locked-indicator" id="hlLockInd">Highlight locked -- click to unlock</div>
   <div class="tooltip" id="tooltip"></div>
   <div class="detail-panel" id="detailPanel">
+    <div class="dp-drag-handle"><div class="dp-drag-bar"></div></div>
     <div class="dp-header">
       <div><div class="dp-title" id="dpTitle"></div><div class="dp-subtitle" id="dpSub"></div></div>
       <button class="dp-close" id="dpClose">x</button>
@@ -375,7 +502,7 @@
 const _isElectron = !!(typeof window !== 'undefined' && window.electronAPI);
 
 // ---- Mobile detection ----
-function _isMobile() { return window.innerWidth <= 768 || ('ontouchstart' in window && window.innerWidth <= 1024); }
+const _isMobile = () => window.innerWidth <= 768;
 
 // ---- Preferences ----
 const PREFS_KEY = 'azureNetMapPrefs';
@@ -398,7 +525,29 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
   const btn = document.getElementById('sidebarToggle');
   sb.classList.toggle('collapsed');
   btn.innerHTML = sb.classList.contains('collapsed') ? '&#x25B6;' : '&#x25C0;';
+  // Show/hide mobile backdrop
+  const bd = document.getElementById('mobileBackdrop');
+  if (bd) { bd.style.display = (!sb.classList.contains('collapsed') && _isMobile()) ? 'block' : 'none' }
+  if (!_isMobile()) savePrefs({ sidebarCollapsed: sb.classList.contains('collapsed') });
 });
+// Mobile backdrop: tap to close sidebar
+(function() {
+  const bd = document.createElement('div');
+  bd.id = 'mobileBackdrop';
+  bd.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;backdrop-filter:blur(2px)';
+  document.body.appendChild(bd);
+  bd.addEventListener('click', () => {
+    const sb = document.querySelector('.sidebar');
+    sb.classList.add('collapsed');
+    document.getElementById('sidebarToggle').innerHTML = '&#x25B6;';
+    bd.style.display = 'none';
+  });
+})();
+// Restore sidebar state (collapse on mobile by default)
+if (_prefs.sidebarCollapsed || _isMobile()) {
+  document.querySelector('.sidebar').classList.add('collapsed');
+  document.getElementById('sidebarToggle').innerHTML = '&#x25B6;';
+}
 
 // ---- Detail panel text scaling ----
 let dpTxtScale = 1.0;
@@ -1103,6 +1252,7 @@ function _renderMapInner() {
 
   // Show legend and export bar
   document.getElementById('legend').style.display = 'flex';
+  if (_isMobile()) document.getElementById('legend').classList.add('collapsed');
   document.getElementById('exportBar').style.display = 'flex';
 
   // Hide Flow button in Executive mode (reporting only — no network tracing)

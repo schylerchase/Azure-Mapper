@@ -146,8 +146,8 @@ function buildChannels(vb, subs) {
   return { h: hChannels, h0, vl, vr, vc, v: [vl, vc, vr] };
 }
 
-// Channel-based branch routing
-function branchRoute(hub, cp, ch, sub, vb) {
+// Channel-based branch routing, avoiding other subnets
+function branchRoute(hub, cp, ch, sub, vb, obs) {
   if (Math.abs(cp.x - hub.x) < 1 && Math.abs(cp.y - hub.y) < 1) return [hub, cp];
   if (!ch || !vb) return simplify([{ ...hub }, { x: cp.x, y: hub.y }, { ...cp }]);
 
@@ -159,13 +159,24 @@ function branchRoute(hub, cp, ch, sub, vb) {
 
   const hIdx = Math.min(subRow, ch.h.length - 1);
   const hChannel = ch.h[hIdx];
-  const bestV = ch.v.reduce((best, x) =>
-    Math.abs(x - cp.x) < Math.abs(best - cp.x) ? x : best, ch.v[0]);
+
+  // Route directly toward cp.x if the vertical path doesn't hit obstacles;
+  // otherwise pick from margin channels that avoid subnets.
+  const yTop = Math.min(hub.y, hChannel), yBot = Math.max(hub.y, hChannel);
+  const obstacles = obs || [];
+  let vx = cp.x;
+  if (obstacles.some(o => segHits(vx, yTop, vx, yBot, o))) {
+    const candidates = [...ch.v].sort((a, b) => Math.abs(a - cp.x) - Math.abs(b - cp.x));
+    vx = candidates[0];
+    for (const cx of candidates) {
+      if (!obstacles.some(o => segHits(cx, yTop, cx, yBot, o))) { vx = cx; break; }
+    }
+  }
 
   return simplify([
     { ...hub },
-    { x: bestV, y: hub.y },
-    { x: bestV, y: hChannel },
+    { x: vx, y: hub.y },
+    { x: vx, y: hChannel },
     { x: cp.x, y: hChannel },
     { ...cp }
   ]);
@@ -193,8 +204,12 @@ function mergeShortSegments(pts, minLen) {
   for (let i = 1; i < pts.length - 1; i++) {
     const prev = out[out.length - 1];
     const cur = pts[i];
+    const next = pts[i + 1];
     const dist = Math.hypot(cur.x - prev.x, cur.y - prev.y);
-    if (dist >= minLen) out.push(cur);
+    if (dist >= minLen) { out.push(cur); continue; }
+    // Only merge short segments if doing so won't create a diagonal
+    const wouldDiag = Math.abs(prev.x - next.x) > 0.5 && Math.abs(prev.y - next.y) > 0.5;
+    if (wouldDiag) out.push(cur);
   }
   out.push(pts[pts.length - 1]);
   return out;

@@ -128,7 +128,7 @@
   .peering-gw rect{transition:fill-opacity .15s}
   .peering-gw:hover rect{fill-opacity:.35}
   .peering-gw text{pointer-events:none}
-  .peering-branch{fill:none;stroke-width:1.2;opacity:.5}
+  .peering-branch{fill:none;stroke-width:1.1;opacity:.4;stroke-dasharray:6 3}
   .peering-ep{cursor:pointer;transition:opacity .15s}
   .peering-ep:hover{opacity:1}
   .animated{animation:dashFlow 1s linear infinite}
@@ -2406,7 +2406,7 @@ function renderPeeringLines(g, lk) {
     return out;
   }
 
-  // Trunk: GW → hub via channels (no fixCollisions)
+  // Trunk: GW → hub via channels, avoiding subnets
   function trunkRoute(gwPt, gwSide, hub, obs, vnetId) {
     const ch = channels[vnetId];
     const vb = boxes[vnetId];
@@ -2417,21 +2417,29 @@ function renderPeeringLines(g, lk) {
       return simplify([gwPt, hub]);
     }
 
-    // Top/bottom GW: pick nearest vertical channel, go to corridor, then to hub
-    const nearestV = ch.v.reduce((best, x) =>
-      Math.abs(x - gwPt.x) < Math.abs(best - gwPt.x) ? x : best, ch.v[0]);
+    // Top/bottom GW: pick nearest vertical channel that doesn't cross subnets
     const stepY = gwSide === 'top' ? vb.y + IM : vb.y + vb.h - IM;
+    const yTop = Math.min(stepY, ch.h0), yBot = Math.max(stepY, ch.h0);
+
+    // Sort channels by distance from gwPt.x, prefer ones that avoid obstacles
+    const ranked = [...ch.v].sort((a, b) => Math.abs(a - gwPt.x) - Math.abs(b - gwPt.x));
+    let bestV = ranked[0];
+    for (const vx of ranked) {
+      const hits = obs.some(o => segHits(vx, yTop, vx, yBot, o));
+      if (!hits) { bestV = vx; break; }
+    }
+
     return simplify([
       gwPt,
       { x: gwPt.x, y: stepY },
-      { x: nearestV, y: stepY },
-      { x: nearestV, y: ch.h0 },
+      { x: bestV, y: stepY },
+      { x: bestV, y: ch.h0 },
       hub
     ]);
   }
 
-  // Branch: hub → subnet endpoint via channels (no fixCollisions)
-  // Uses the channel grid to find the best vertical channel to reach the target subnet.
+  // Branch: hub → subnet endpoint via channels, avoiding other subnets.
+  // Each branch routes directly toward its target for visual clarity.
   function branchRoute(hub, cp, obs, sub, vnetId) {
     if (Math.abs(cp.x - hub.x) < 1 && Math.abs(cp.y - hub.y) < 1) return [hub, cp];
 
@@ -2448,20 +2456,28 @@ function renderPeeringLines(g, lk) {
     }
 
     // Lower rows: find the horizontal channel just above this row (the row gap)
-    // h[0] = corridor, h[1] = gap between row 0 and row 1, etc.
     const hIdx = Math.min(subRow, ch.h.length - 1);
     const hChannel = ch.h[hIdx];
 
-    // Pick the best vertical channel: closest to cp.x that doesn't cross a subnet
-    const bestV = ch.v.reduce((best, x) =>
-      Math.abs(x - cp.x) < Math.abs(best - cp.x) ? x : best, ch.v[0]);
+    // Route directly toward cp.x if the vertical path doesn't hit obstacles;
+    // otherwise pick from margin channels that avoid subnets.
+    const yTop = Math.min(hub.y, hChannel), yBot = Math.max(hub.y, hChannel);
+    let vx = cp.x;  // ideal: drop straight above the target
+    if (obs.some(o => segHits(vx, yTop, vx, yBot, o))) {
+      // cp.x blocked — try margin channels, pick closest to cp.x that's clear
+      const candidates = [...ch.v].sort((a, b) => Math.abs(a - cp.x) - Math.abs(b - cp.x));
+      vx = candidates[0];  // fallback
+      for (const cx of candidates) {
+        if (!obs.some(o => segHits(cx, yTop, cx, yBot, o))) { vx = cx; break; }
+      }
+    }
 
     return simplify([
       { ...hub },
-      { x: bestV, y: hub.y },      // horizontal on corridor to vertical channel
-      { x: bestV, y: hChannel },    // drop on vertical channel to row gap
-      { x: cp.x, y: hChannel },    // horizontal on row gap to target column
-      { ...cp }                     // short drop to endpoint
+      { x: vx, y: hub.y },        // horizontal on corridor to vertical lane
+      { x: vx, y: hChannel },     // drop on vertical lane to row gap
+      { x: cp.x, y: hChannel },   // horizontal on row gap to target column
+      { ...cp }                    // short drop to endpoint
     ]);
   }
 
@@ -2506,8 +2522,12 @@ function renderPeeringLines(g, lk) {
     for (let i = 1; i < pts.length - 1; i++) {
       const prev = out[out.length - 1];
       const cur = pts[i];
+      const next = pts[i + 1];
       const dist = Math.hypot(cur.x - prev.x, cur.y - prev.y);
-      if (dist >= minLen) out.push(cur);
+      // Only merge short segments if doing so won't create a diagonal
+      if (dist >= minLen) { out.push(cur); continue; }
+      const wouldDiag = Math.abs(prev.x - next.x) > 0.5 && Math.abs(prev.y - next.y) > 0.5;
+      if (wouldDiag) out.push(cur);  // keep corner to prevent diagonal
     }
     out.push(pts[pts.length - 1]);
     return out;
@@ -2555,13 +2575,20 @@ function renderPeeringLines(g, lk) {
   });
 
   // ── Render gateway icon (once per used side per VNet) ──
-
-  const gwIcons = {};
+  // Count how many GW icons exist per side to stack them if multiple peerings share a side
+  const gwIcons = {};   // vnetId|side → true
+  const gwCount = {};   // vnetId|side → count (for stacking)
   function renderGw(vnetId, side) {
     const pk = vnetId + '|' + side;
     if (gwIcons[pk]) return;
     gwIcons[pk] = true;
     const pt = connPt(boxes[vnetId], side);
+    // Inset GW icon 18px inside the VNet edge so adjacent VNet GW icons don't collide
+    const inset = 18;
+    if (side === 'left')   pt.x += inset;
+    if (side === 'right')  pt.x -= inset;
+    if (side === 'top')    pt.y += inset;
+    if (side === 'bottom') pt.y -= inset;
     const bw = 28, bh = 14;
     const gwG = peerG.append('g').attr('class', 'peering-gw')
       .attr('transform', `translate(${pt.x},${pt.y})`)
@@ -2622,9 +2649,9 @@ function renderPeeringLines(g, lk) {
     const extMid = pathMid(extPts);
     const isVert = !hSide(ss) && !hSide(ds);
     const isHoriz = hSide(ss) && hSide(ds);
-    // Offset label away from the line so it doesn't overlap with GW icons or the line itself
-    const lblX = extMid.x + (isVert ? 14 : 0);
-    const lblY = extMid.y + (isHoriz ? -12 : (isVert ? 4 : -10));
+    // Offset label further from line to clear inset GW icons
+    const lblX = extMid.x + (isVert ? 16 : 0);
+    const lblY = extMid.y + (isHoriz ? -14 : (isVert ? 4 : -12));
     peerG.append('text')
       .attr('x', lblX).attr('y', lblY)
       .attr('text-anchor', isVert ? 'start' : 'middle')

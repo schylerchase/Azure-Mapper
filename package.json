@@ -36,11 +36,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -66,8 +70,8 @@
     "electron-updater": "^6.7.3"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-builder": "^25.1.8",
+    "electron": "^35.7.5",
+    "electron-builder": "^26.7.0",
     "jest": "^29.7.0"
   }
 }

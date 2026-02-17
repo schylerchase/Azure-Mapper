@@ -1,6 +1,6 @@
 {
   "name": "azure-network-mapper",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Azure Network Topology Mapper - Desktop Application",
   "author": "schylerchase",
   "main": "main.js",

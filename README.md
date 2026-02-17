@@ -1,6 +1,6 @@
 <p align="center">
   <img src="logo.png" alt="Azure Network Mapper" width="200">
-  <!-- logo.png is a JPEG; icon.png is the PNG conversion used by Electron -->
+  <!-- icon.png is used by Electron for the window/dock icon -->
 </p>
 
 <h1 align="center">Azure Network Mapper</h1>

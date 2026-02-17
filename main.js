@@ -237,6 +237,11 @@ function checkForUpdates() {
 // ── App Lifecycle ─────────────────────────────────────────────────
 
 app.whenReady().then(() => {
+    // Set dock icon on macOS
+    if (process.platform === 'darwin' && app.dock) {
+        app.dock.setIcon(path.join(__dirname, 'icon.png'));
+    }
+
     createWindow();
 
     // Check for updates after a short delay

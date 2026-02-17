@@ -69,9 +69,29 @@
   .stats-bar{position:absolute;top:12px;left:0;right:0;display:none;gap:5px;flex-wrap:wrap;z-index:5;justify-content:center;padding:0 440px 0 40px;transition:padding-right .2s}
   .main:has(.detail-panel.open) .stats-bar{padding-right:860px}
   .main:has(.detail-panel.open) .export-bar{right:432px}
-  .stat-chip{font-family:'IBM Plex Mono',monospace;font-size:calc(11px * var(--txt-scale));font-weight:500;padding:5px 10px;border-radius:4px;background:var(--bg-card);border:1px solid var(--border);backdrop-filter:blur(8px);color:var(--text-secondary);cursor:pointer;transition:border-color .15s,background .15s}
+  .stat-chip{font-family:'IBM Plex Mono',monospace;font-size:calc(11px * var(--txt-scale));font-weight:500;padding:5px 10px;border-radius:4px;background:var(--bg-card);border:1px solid var(--border);backdrop-filter:blur(8px);color:var(--text-secondary);cursor:pointer;transition:border-color .15s,background .15s;user-select:none}
   .stat-chip:hover{border-color:var(--accent-blue);background:rgba(59,130,246,.12)}
+  .stat-chip.active{border-color:var(--accent-cyan);background:rgba(34,211,238,.12);color:var(--accent-cyan)}
+  .stat-chip.active b{color:var(--accent-cyan)}
   .stat-chip b{color:var(--text-primary);font-weight:600;margin-right:3px}
+  #mapRoot.filtered .vnet-group{opacity:.15;transition:opacity .2s}
+  #mapRoot.filtered .vnet-group.chip-match{opacity:1}
+  #mapRoot.filtered .subnet-node{opacity:.15;transition:opacity .2s}
+  #mapRoot.filtered .subnet-node.chip-match{opacity:1}
+  #mapRoot.filtered .peering-line,#mapRoot.filtered .peering-branch,#mapRoot.filtered .peering-gw,#mapRoot.filtered .peering-ep{opacity:.08;transition:opacity .2s}
+  #mapRoot.flow-hl .vnet-group{opacity:.18;transition:opacity .25s}
+  #mapRoot.flow-hl .vnet-group.flow-src,#mapRoot.flow-hl .vnet-group.flow-dst{opacity:1}
+  #mapRoot.flow-hl .subnet-node{opacity:.18;transition:opacity .25s}
+  #mapRoot.flow-hl .subnet-node.flow-src{opacity:1}
+  #mapRoot.flow-hl .subnet-node.flow-src rect{stroke:var(--accent-green);stroke-width:2.5}
+  #mapRoot.flow-hl .subnet-node.flow-dst{opacity:1}
+  #mapRoot.flow-hl .subnet-node.flow-dst rect{stroke:var(--accent-cyan);stroke-width:2.5}
+  #mapRoot.flow-hl .subnet-node.flow-deny{opacity:1}
+  #mapRoot.flow-hl .subnet-node.flow-deny rect{stroke:var(--accent-red);stroke-width:2.5}
+  #mapRoot.flow-hl .peering-line,#mapRoot.flow-hl .peering-branch{opacity:.08}
+  .flow-path-hl{fill:none;stroke:var(--accent-green);stroke-width:2.5;opacity:.8;stroke-dasharray:8 4;animation:dashFlow 1.2s linear infinite;pointer-events:none}
+  .flow-path-hl.denied{stroke:var(--accent-red)}
+  @keyframes dashFlow{to{stroke-dashoffset:-24}}
   .legend{position:absolute;bottom:12px;left:12px;display:none;flex-direction:column;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;backdrop-filter:blur(8px);z-index:5;transition:all .2s}
   .legend-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:3px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;user-select:none}
   .legend-title .lg-arr{font-size:7px;transition:transform .2s}
@@ -103,15 +123,14 @@
   .gw-id{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-muted);pointer-events:none;opacity:.6}
   .gw-name{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-secondary);pointer-events:none}
   .route-line{fill:none;stroke-width:1.5;opacity:.35;pointer-events:none}
-  .peering-line{fill:none;stroke-width:2;opacity:.6;stroke-dasharray:9 9;animation:dashFlow 1.2s linear infinite}
+  .peering-line{fill:none;stroke-width:1.5;opacity:.45}
   .peering-gw{cursor:pointer}
   .peering-gw rect{transition:fill-opacity .15s}
   .peering-gw:hover rect{fill-opacity:.35}
   .peering-gw text{pointer-events:none}
-  .peering-branch{fill:none;stroke-width:1.5;opacity:.5}
+  .peering-branch{fill:none;stroke-width:1.2;opacity:.5}
   .peering-ep{cursor:pointer;transition:opacity .15s}
   .peering-ep:hover{opacity:1}
-  @keyframes dashFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:-18}}
   .animated{animation:dashFlow 1s linear infinite}
   .export-bar{position:absolute;top:12px;right:12px;display:none;gap:4px;z-index:6;flex-direction:column}
   .export-btn{padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:5px;color:var(--text-secondary);font-family:'IBM Plex Mono',monospace;font-size:calc(11px * var(--txt-scale));font-weight:500;cursor:pointer;backdrop-filter:blur(8px);transition:all .15s;text-align:left;white-space:nowrap}
@@ -181,6 +200,30 @@
   .copyable:hover{color:var(--accent-cyan);border-bottom-color:var(--accent-cyan)}
   .copy-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(16,185,129,.9);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:6px 16px;border-radius:5px;z-index:200;pointer-events:none;opacity:0;transition:opacity .2s}
   .copy-toast.show{opacity:1}
+  .app-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 20px;border-radius:6px;z-index:250;pointer-events:none;opacity:0;transition:opacity .25s;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+  .app-toast.show{opacity:1}
+  .app-toast.success{background:rgba(16,185,129,.92);color:#fff}
+  .app-toast.error{background:rgba(239,68,68,.92);color:#fff}
+  .app-toast.info{background:rgba(59,130,246,.92);color:#fff}
+  .kb-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
+  .kb-overlay.open{display:flex}
+  .kb-panel{background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:24px 32px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .kb-panel h2{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--accent-cyan);margin:0 0 16px;text-transform:uppercase;letter-spacing:1px}
+  .kb-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(100,116,139,.1)}
+  .kb-row:last-child{border-bottom:none}
+  .kb-action{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-secondary)}
+  .kb-key{font-family:'IBM Plex Mono',monospace;font-size:10px;background:rgba(100,116,139,.15);border:1px solid rgba(100,116,139,.25);border-radius:4px;padding:2px 8px;color:var(--text-primary);min-width:24px;text-align:center}
+  .sec-badge{font-size:9px;background:rgba(6,182,212,.15);color:var(--accent-cyan);border-radius:8px;padding:1px 6px;margin-left:6px;font-weight:600}
+  .sec-clear{font-size:9px;color:var(--text-muted);cursor:pointer;margin-left:auto;padding:2px 6px;border-radius:3px;opacity:0;transition:opacity .15s}
+  .sec-hdr:hover .sec-clear{opacity:1}
+  .sec-clear:hover{color:var(--accent-red);background:rgba(239,68,68,.1)}
+  .flow-ac-wrap{position:relative}
+  .flow-ac-list{position:absolute;top:100%;left:0;right:0;max-height:160px;overflow-y:auto;background:var(--bg-secondary);border:1px solid var(--border);border-radius:0 0 6px 6px;z-index:10;display:none}
+  .flow-ac-list.open{display:block}
+  .flow-ac-item{padding:5px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-secondary);cursor:pointer;display:flex;justify-content:space-between}
+  .flow-ac-item:hover,.flow-ac-item.selected{background:rgba(59,130,246,.15);color:var(--text-primary)}
+  .flow-ac-item .ip{color:var(--accent-cyan)}
+  .flow-ac-item .lbl{color:var(--text-muted);font-size:9px;max-width:50%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .update-banner{position:fixed;top:0;left:0;right:0;z-index:300;display:none;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:linear-gradient(135deg,rgba(59,130,246,.95),rgba(139,92,246,.95));color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;backdrop-filter:blur(8px);box-shadow:0 2px 12px rgba(0,0,0,.3)}
   .update-banner.visible{display:flex}
   .update-banner a{color:#fff;text-decoration:underline;font-weight:600;cursor:pointer}
@@ -390,8 +433,13 @@
 </div>
 <div class="sidebar">
   <div class="sidebar-header">
-    <h1>Azure Network Map <span style="font-size:8px;color:var(--text-muted);font-weight:400">v1.1</span></h1>
-    <p>Paste Azure CLI JSON exports or upload folder</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
+      <img src="logo.png" alt="" style="width:32px;height:32px;border-radius:50%;flex-shrink:0">
+      <div>
+        <h1 style="margin-bottom:0">Azure Network Map <span style="font-size:8px;color:var(--text-muted);font-weight:400">v1.1</span></h1>
+        <p style="margin:0">Paste Azure CLI JSON exports or upload folder</p>
+      </div>
+    </div>
     <div class="global-txt-ctrl">
       <span class="gtc-label">Text Size</span>
       <button class="gtc-btn" id="gTxtDown">-</button>
@@ -417,7 +465,21 @@
   <div class="grid-bg"></div>
   <div class="loading-overlay" id="loadingOverlay"><div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent-cyan);border-radius:50%;animation:spin 1s linear infinite"></div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted)">Rendering map...</div></div>
   <div class="copy-toast" id="copyToast">Copied!</div>
-  <div class="empty-state" id="emptyState"><div class="icon">&#9700;</div><h2 id="emptyTitle">No data loaded</h2><p id="emptyDesc">Paste Azure CLI JSON exports and click Render Map</p></div>
+  <div class="empty-state" id="emptyState">
+    <div class="icon">&#9700;</div>
+    <h2 id="emptyTitle">No data loaded</h2>
+    <p id="emptyDesc">Paste Azure CLI JSON exports and click Render Map</p>
+    <div id="emptyActions" style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:center">
+      <button onclick="generateDemo()" style="background:var(--accent-cyan);color:#0a0e17;border:none;border-radius:6px;padding:8px 20px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.5px">&#9654; Load Demo</button>
+      <button onclick="document.getElementById('sidebarToggle').click()" style="background:transparent;color:var(--text-secondary);border:1px solid var(--border);border-radius:6px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer">Paste JSON &#8594;</button>
+    </div>
+    <div id="emptyHints" style="margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted);line-height:1.8;text-align:center">
+      <span style="opacity:.6">Quick start:</span>
+      <span style="color:var(--accent-cyan)">az network vnet list -o json</span>
+      <span style="opacity:.4">&#8594; paste in sidebar &#8594; Render Map</span><br>
+      <span style="opacity:.4">Press</span> <span style="background:rgba(100,116,139,.15);border:1px solid rgba(100,116,139,.25);border-radius:3px;padding:0 5px;color:var(--text-secondary)">?</span> <span style="opacity:.4">for keyboard shortcuts</span>
+    </div>
+  </div>
   <svg id="mapSvg"></svg>
   <div class="stats-bar" id="statsBar"></div>
   <div class="legend" id="legend">
@@ -495,6 +557,25 @@
       <div id="searchResults" style="max-height:400px;overflow-y:auto;margin-top:6px"></div>
     </div>
   </div>
+  <!-- Keyboard Shortcuts Help -->
+  <div class="kb-overlay" id="kbOverlay" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="kb-panel">
+      <h2>Keyboard Shortcuts</h2>
+      <div class="kb-row"><span class="kb-action">Search</span><span class="kb-key">/</span></div>
+      <div class="kb-row"><span class="kb-action">Close panel / overlay</span><span class="kb-key">Esc</span></div>
+      <div class="kb-row"><span class="kb-action">Zoom in</span><span class="kb-key">+</span></div>
+      <div class="kb-row"><span class="kb-action">Zoom out</span><span class="kb-key">-</span></div>
+      <div class="kb-row"><span class="kb-action">Fit map to screen</span><span class="kb-key">F</span></div>
+      <div class="kb-row"><span class="kb-action">Render map</span><span class="kb-key">R</span></div>
+      <div class="kb-row"><span class="kb-action">Load demo data</span><span class="kb-key">D</span></div>
+      <div class="kb-row"><span class="kb-action">Save project</span><span class="kb-key">&#8984;S</span></div>
+      <div class="kb-row"><span class="kb-action">Flow tracer</span><span class="kb-key">&#8679;T</span></div>
+      <div class="kb-row"><span class="kb-action">Compliance dashboard</span><span class="kb-key">&#8679;C</span></div>
+      <div class="kb-row"><span class="kb-action">Show this help</span><span class="kb-key">?</span></div>
+    </div>
+  </div>
+  <!-- App Toast -->
+  <div class="app-toast" id="appToast"></div>
   <div class="hl-locked-indicator" id="hlLockInd">Highlight locked -- click to unlock</div>
   <div class="tooltip" id="tooltip"></div>
   <div class="detail-panel" id="detailPanel">
@@ -580,6 +661,7 @@ document.getElementById('dpClose').addEventListener('click', closeDetailPanel);
 
 function closeDetailPanel() {
   document.getElementById('detailPanel').classList.remove('open');
+  clearFlowHighlight();
 }
 
 // ============================================================
@@ -686,6 +768,17 @@ function copyText(text) {
   }).catch(() => {});
 }
 
+let _toastTimer;
+function showToast(msg, type) {
+  type = type || 'info';
+  const t = document.getElementById('appToast');
+  if (!t) { console.warn('showToast: #appToast not found; message:', msg); return; }
+  t.textContent = msg;
+  t.className = 'app-toast ' + type + ' show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
 // ============================================================
 // SIDEBAR INPUT FIELDS — All 40 resource types
 // ============================================================
@@ -751,31 +844,105 @@ const INPUT_SECTIONS = [
   ]},
 ];
 
-// Build sidebar
+// Build sidebar with section badges and clear buttons
 (function buildSidebar() {
   const body = document.getElementById('sidebarBody');
-  let html = '';
+  const frag = document.createDocumentFragment();
   const mobile = !_isElectron && _isMobile();
+
   INPUT_SECTIONS.forEach((sec, si) => {
     const startCollapsed = mobile || si > 3;
-    html += `<div class="sec-hdr${startCollapsed ? ' collapsed' : ''}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('hidden')"><span>${esc(sec.title)}</span><span class="arr">&#9660;</span></div>`;
-    html += `<div class="sec-body${startCollapsed ? ' hidden' : ''}">`;
-    sec.inputs.forEach(inp => {
-      html += `<div class="ig"><div class="ig-lbl"><span>${esc(inp.l)}</span><code>${esc(inp.c)}</code></div><textarea id="${inp.id}" class="ji" placeholder="Paste ${esc(inp.c)} JSON..."></textarea></div>`;
-    });
-    html += '</div>';
-  });
-  body.innerHTML = html;
+    const ids = sec.inputs.map(i => i.id);
 
-  // JSON validation on input
+    // Section header
+    const hdr = document.createElement('div');
+    hdr.className = 'sec-hdr' + (startCollapsed ? ' collapsed' : '');
+    hdr.dataset.sec = si;
+    hdr.onclick = function() { this.classList.toggle('collapsed'); this.nextElementSibling.classList.toggle('hidden') };
+
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = sec.title;
+    hdr.appendChild(titleSpan);
+
+    const badge = document.createElement('span');
+    badge.className = 'sec-badge';
+    badge.id = 'secBadge' + si;
+    hdr.appendChild(badge);
+
+    const clearBtn = document.createElement('span');
+    clearBtn.className = 'sec-clear';
+    clearBtn.textContent = 'clear';
+    clearBtn.title = 'Clear section';
+    clearBtn.dataset.secIds = JSON.stringify(ids);
+    clearBtn.onclick = function(e) { e.stopPropagation(); clearSection(this) };
+    hdr.appendChild(clearBtn);
+
+    const arrow = document.createElement('span');
+    arrow.className = 'arr';
+    arrow.textContent = '\u25BC';
+    hdr.appendChild(arrow);
+
+    frag.appendChild(hdr);
+
+    // Section body
+    const secBody = document.createElement('div');
+    secBody.className = 'sec-body' + (startCollapsed ? ' hidden' : '');
+    sec.inputs.forEach(inp => {
+      const ig = document.createElement('div');
+      ig.className = 'ig';
+      const lbl = document.createElement('div');
+      lbl.className = 'ig-lbl';
+      const lblSpan = document.createElement('span');
+      lblSpan.textContent = inp.l;
+      const code = document.createElement('code');
+      code.textContent = inp.c;
+      lbl.appendChild(lblSpan);
+      lbl.appendChild(code);
+      const ta = document.createElement('textarea');
+      ta.id = inp.id;
+      ta.className = 'ji';
+      ta.dataset.sec = si;
+      ta.placeholder = 'Paste ' + inp.c + ' JSON...';
+      ig.appendChild(lbl);
+      ig.appendChild(ta);
+      secBody.appendChild(ig);
+    });
+    frag.appendChild(secBody);
+  });
+
+  body.appendChild(frag);
+
+  // JSON validation on input + badge update
   document.querySelectorAll('.ji').forEach(el => {
     el.addEventListener('input', function() {
-      if (!this.value.trim()) { this.className = 'ji'; return }
+      if (!this.value.trim()) { this.className = 'ji'; updateSecBadge(this.dataset.sec); return }
       try { JSON.parse(this.value); this.className = 'ji valid' }
       catch(e) { this.className = 'ji invalid' }
+      updateSecBadge(this.dataset.sec);
     });
   });
 })();
+
+function updateSecBadge(secIdx) {
+  if (secIdx === undefined) return;
+  const sec = INPUT_SECTIONS[secIdx];
+  if (!sec) return;
+  const filled = sec.inputs.filter(i => { const el = document.getElementById(i.id); return el && el.value.trim() }).length;
+  const badge = document.getElementById('secBadge' + secIdx);
+  if (badge) badge.textContent = filled > 0 ? filled + '/' + sec.inputs.length : '';
+}
+
+function updateAllBadges() {
+  INPUT_SECTIONS.forEach((_, i) => updateSecBadge(i));
+}
+
+function clearSection(btn) {
+  const ids = JSON.parse(btn.dataset.secIds);
+  ids.forEach(id => { const el = document.getElementById(id); if (el) { el.value = ''; el.className = 'ji' } });
+  const hdr = btn.closest('.sec-hdr');
+  if (hdr) updateSecBadge(hdr.dataset.sec);
+  showToast('Section cleared', 'info');
+}
 
 // ============================================================
 // FILE UPLOAD
@@ -815,6 +982,7 @@ document.getElementById('fileInput').addEventListener('change', function() {
       }
       statusEl.style.display = 'block';
       statusEl.textContent = `Loaded ${loaded} file(s)`;
+      updateAllBadges();
     };
     reader.readAsText(file);
   });
@@ -1168,8 +1336,8 @@ function renderMap() {
   overlay.style.display = 'flex';
   requestAnimationFrame(() => {
     setTimeout(() => {
-      try { _renderMapInner() }
-      catch(e) { console.error('Render error:', e) }
+      try { _renderMapInner(); showToast('Map rendered', 'success') }
+      catch(e) { console.error('Render error:', e); showToast('Render failed: ' + e.message, 'error') }
       finally { overlay.style.display = 'none' }
     }, 50);
   });
@@ -1222,6 +1390,7 @@ function _renderMapInner() {
     document.getElementById('emptyState').style.display = 'flex';
     document.getElementById('emptyTitle').textContent = 'No VNets found';
     document.getElementById('emptyDesc').textContent = 'Paste az network vnet list output and click Render Map';
+    showToast('No VNets found in input data', 'error');
     return;
   }
 
@@ -1286,27 +1455,127 @@ function _renderMapInner() {
 }
 
 // ---- Stats Bar ----
+let _activeChipFilter = null;
+
 function renderStatsBar(lk) {
   const bar = document.getElementById('statsBar');
+  _activeChipFilter = null;
+  const root = document.getElementById('mapRoot');
+  if (root) {
+    root.classList.remove('filtered');
+    root.querySelectorAll('.chip-match').forEach(el => el.classList.remove('chip-match'));
+  }
   const counts = [
-    ['VNets', lk.vnets.length],
-    ['Subnets', lk.subnets.length],
-    ['NSGs', lk.nsgs.length],
-    ['VMs', lk.vms.length],
-    ['NICs', lk.nics.length],
-    ['Public IPs', lk.publicIps.length],
-    ['NAT GWs', lk.natGateways.length],
-    ['Priv Endpoints', lk.privateEndpoints.length],
-    ['App GWs', lk.appGateways.length],
-    ['LBs', lk.loadBalancers.length],
-    ['Peerings', lk.peerings.length],
-    ['Firewalls', lk.firewalls.length],
+    ['VNets', lk.vnets.length, 'vnets'],
+    ['Subnets', lk.subnets.length, 'subnets'],
+    ['NSGs', lk.nsgs.length, 'nsgs'],
+    ['VMs', lk.vms.length, 'vms'],
+    ['NICs', lk.nics.length, 'nics'],
+    ['Public IPs', lk.publicIps.length, 'pips'],
+    ['NAT GWs', lk.natGateways.length, 'nats'],
+    ['Priv Endpoints', lk.privateEndpoints.length, 'pes'],
+    ['App GWs', lk.appGateways.length, 'agws'],
+    ['LBs', lk.loadBalancers.length, 'lbs'],
+    ['Peerings', lk.peerings.length, 'peerings'],
+    ['Firewalls', lk.firewalls.length, 'fws'],
   ].filter(([, c]) => c > 0);
 
-  bar.innerHTML = counts.map(([label, count]) =>
-    `<div class="stat-chip"><b>${count}</b>${esc(label)}</div>`
-  ).join('');
+  bar.innerHTML = '';
+  counts.forEach(([label, count, key]) => {
+    const chip = document.createElement('div');
+    chip.className = 'stat-chip';
+    chip.setAttribute('data-filter', key);
+    chip.innerHTML = `<b>${count}</b>${esc(label)}`;
+    chip.addEventListener('click', () => toggleChipFilter(key, chip));
+    bar.appendChild(chip);
+  });
   bar.style.display = 'flex';
+}
+
+function toggleChipFilter(key, chip) {
+  const root = document.getElementById('mapRoot');
+  if (!root || !_lk) return;
+
+  // Toggle off if same filter clicked again
+  if (_activeChipFilter === key) {
+    _activeChipFilter = null;
+    root.classList.remove('filtered');
+    root.querySelectorAll('.chip-match').forEach(el => el.classList.remove('chip-match'));
+    document.querySelectorAll('.stat-chip.active').forEach(el => el.classList.remove('active'));
+    return;
+  }
+
+  // Clear previous
+  root.querySelectorAll('.chip-match').forEach(el => el.classList.remove('chip-match'));
+  document.querySelectorAll('.stat-chip.active').forEach(el => el.classList.remove('active'));
+
+  _activeChipFilter = key;
+  chip.classList.add('active');
+  root.classList.add('filtered');
+
+  // Build set of matching VNet IDs and subnet IDs
+  const vnetIds = new Set();
+  const subIds = new Set();
+
+  if (key === 'vnets') {
+    _lk.vnets.forEach(v => vnetIds.add(v.id));
+  } else if (key === 'subnets') {
+    _lk.subnets.forEach(s => { subIds.add(s.id); const v = findVnetForSubnet(s.id, _lk); if (v) vnetIds.add(v.id); });
+  } else if (key === 'peerings') {
+    _lk.peerings.forEach(p => {
+      const vid = (p.id || '').split('/virtualNetworks/')[1]?.split('/')[0];
+      if (vid) _lk.vnets.forEach(v => { if (shortName(v).toLowerCase() === vid.toLowerCase() || v.id.toLowerCase().includes(vid.toLowerCase())) vnetIds.add(v.id); });
+      if (p.remoteVirtualNetwork?.id) vnetIds.add(p.remoteVirtualNetwork.id);
+    });
+  } else {
+    // Resource-type filters: find subnets that contain those resources
+    const subLookup = {
+      nsgs: () => _lk.nsgs.forEach(n => { const sid = Object.keys(_lk.nsgBySubnet).find(k => _lk.nsgBySubnet[k]?.id === n.id); if (sid) subIds.add(sid); }),
+      vms: () => Object.keys(_lk.vmsBySubnet).forEach(sid => { if ((_lk.vmsBySubnet[sid] || []).length > 0) subIds.add(sid); }),
+      nics: () => _lk.nics.forEach(nic => { (nic.ipConfigurations || []).forEach(ipc => { if (ipc.subnet?.id) subIds.add(ipc.subnet.id); }); }),
+      pips: () => _lk.publicIps.forEach(pip => {
+        const nic = _lk.nics.find(n => (n.ipConfigurations || []).some(ipc => ipc.publicIpAddress?.id === pip.id));
+        if (nic) (nic.ipConfigurations || []).forEach(ipc => { if (ipc.subnet?.id) subIds.add(ipc.subnet.id); });
+      }),
+      nats: () => Object.keys(_lk.natBySubnet).forEach(sid => { if (_lk.natBySubnet[sid]) subIds.add(sid); }),
+      pes: () => Object.keys(_lk.pesBySubnet).forEach(sid => { if ((_lk.pesBySubnet[sid] || []).length > 0) subIds.add(sid); }),
+      agws: () => Object.keys(_lk.appGwBySubnet).forEach(sid => { if ((_lk.appGwBySubnet[sid] || []).length > 0) subIds.add(sid); }),
+      lbs: () => Object.keys(_lk.lbBySubnet).forEach(sid => { if ((_lk.lbBySubnet[sid] || []).length > 0) subIds.add(sid); }),
+      fws: () => _lk.firewalls.forEach(fw => { (fw.ipConfigurations || []).forEach(c => { if (c.subnet?.id) subIds.add(c.subnet.id); }); }),
+    };
+    if (subLookup[key]) subLookup[key]();
+
+    // Also highlight parent VNets of matched subnets
+    subIds.forEach(sid => {
+      const v = findVnetForSubnet(sid, _lk);
+      if (v) vnetIds.add(v.id);
+    });
+  }
+
+  // If only VNets matched (e.g. 'vnets' or 'peerings'), highlight all their subnets too
+  if (subIds.size === 0 && vnetIds.size > 0 && key !== 'peerings') {
+    vnetIds.forEach(vid => {
+      (_lk.subnetsByVnet[vid] || []).forEach(s => subIds.add(s.id));
+    });
+  }
+
+  // Apply .chip-match to matching SVG elements
+  vnetIds.forEach(vid => {
+    if (!vid) return;
+    const el = root.querySelector(`[data-vnet-id="${CSS.escape(vid)}"]`);
+    if (el) el.classList.add('chip-match');
+  });
+  subIds.forEach(sid => {
+    if (!sid) return;
+    const el = root.querySelector(`[data-subnet-id="${CSS.escape(sid)}"]`);
+    if (el) el.classList.add('chip-match');
+    // Also mark parent VNet
+    const v = findVnetForSubnet(sid, _lk);
+    if (v) {
+      const vel = root.querySelector(`[data-vnet-id="${CSS.escape(v.id)}"]`);
+      if (vel) vel.classList.add('chip-match');
+    }
+  });
 }
 
 // ---- Grid Layout ----
@@ -1318,8 +1587,8 @@ function renderGridLayout(g, lk) {
   const VNET_PAD = 30;
   const SUBNET_H = 140;
   const SUBNET_W = 280;
-  const SUBNET_GAP = 12;
-  const SUBNET_PAD_TOP = 50;
+  const SUBNET_GAP = 40;
+  const SUBNET_PAD_TOP = 70;
   const VNET_GAP = 40;
   const RES_H = 18;
   const RES_GAP = 2;
@@ -1377,12 +1646,14 @@ function renderGridLayout(g, lk) {
     // VNet label
     const addressPrefixes = (vnet.addressSpace && vnet.addressSpace.addressPrefixes) || [];
     const cidrText = addressPrefixes.join(', ') || '';
-    vnetG.append('text').attr('class', 'vnet-label')
+    const labelEl = vnetG.append('text').attr('class', 'vnet-label')
       .attr('x', vx + 12).attr('y', vy + 22)
       .text(shortName(vnet));
-    vnetG.append('text').attr('class', 'vnet-cidr')
-      .attr('x', vx + 12).attr('y', vy + 36)
-      .text(cidrText);
+    if (cidrText) {
+      labelEl.append('tspan').attr('class', 'vnet-cidr')
+        .attr('dx', 8)
+        .text(cidrText);
+    }
 
     // Location and RG badge
     const locText = vnet.location || '';
@@ -1616,8 +1887,8 @@ function renderLandingZoneLayout(g, lk) {
   const VNET_PAD = 30;
   const SUBNET_H = 140;
   const SUBNET_W = 280;
-  const SUBNET_GAP = 12;
-  const SUBNET_PAD_TOP = 50;
+  const SUBNET_GAP = 40;
+  const SUBNET_PAD_TOP = 70;
   const RES_H = 18;
   const RES_GAP = 2;
 
@@ -1765,7 +2036,7 @@ function renderExecutiveLayout(g, lk) {
 function renderVnetBox(g, vnet, vx, vy, vnetW, vnetH, lk) {
   const subnets = lk.subnetsByVnet[vnet.id] || [];
   const addressPrefixes = (vnet.addressSpace && vnet.addressSpace.addressPrefixes) || [];
-  const VNET_PAD = 30, SUBNET_H = 140, SUBNET_W = 280, SUBNET_GAP = 12, SUBNET_PAD_TOP = 50, RES_H = 18, RES_GAP = 2;
+  const VNET_PAD = 30, SUBNET_H = 140, SUBNET_W = 280, SUBNET_GAP = 40, SUBNET_PAD_TOP = 70, RES_H = 18, RES_GAP = 2;
 
   const vnetG = g.append('g').attr('class', 'vnet-group').attr('data-vnet-id', vnet.id);
   vnetG.append('rect')
@@ -1777,12 +2048,15 @@ function renderVnetBox(g, vnet, vx, vy, vnetW, vnetH, lk) {
     .style('cursor', 'pointer')
     .on('click', () => openVNetPanel(vnet, lk));
 
-  vnetG.append('text').attr('class', 'vnet-label')
+  const labelEl2 = vnetG.append('text').attr('class', 'vnet-label')
     .attr('x', vx + 12).attr('y', vy + 22)
     .text(shortName(vnet));
-  vnetG.append('text').attr('class', 'vnet-cidr')
-    .attr('x', vx + 12).attr('y', vy + 36)
-    .text(addressPrefixes.join(', '));
+  const cidr2 = addressPrefixes.join(', ');
+  if (cidr2) {
+    labelEl2.append('tspan').attr('class', 'vnet-cidr')
+      .attr('dx', 8)
+      .text(cidr2);
+  }
 
   // Subnets
   let maxSubH = SUBNET_H;
@@ -1892,12 +2166,7 @@ function renderPeeringLines(g, lk) {
              Math.max(y1, y2) < b.y || Math.min(y1, y2) > b.y + b.h);
   }
 
-  function connPt(box, side) {
-    if (side === 'right')  return { x: Math.round(box.x + box.w), y: Math.round(box.cy) };
-    if (side === 'left')   return { x: Math.round(box.x),         y: Math.round(box.cy) };
-    if (side === 'bottom') return { x: Math.round(box.cx),        y: Math.round(box.y + box.h) };
-    return { x: Math.round(box.cx), y: Math.round(box.y) };
-  }
+  function hSide(s) { return s === 'left' || s === 'right'; }
 
   function facing(src, dst) {
     const dx = dst.cx - src.cx, dy = dst.cy - src.cy;
@@ -1911,9 +2180,65 @@ function renderPeeringLines(g, lk) {
     if (side === 'bottom') return { x: pt.x, y: pt.y + dist };
     return { x: pt.x, y: pt.y - dist };
   }
-  function stepIn(pt, side, dist) { return stepOut(pt, side, -dist); }
 
-  function hSide(s) { return s === 'left' || s === 'right'; }
+  // ── Channel grid: pre-compute safe routing lanes for each VNet ──
+
+  const channels = {};  // vnetId → { h: [y, ...], v: [x, ...], h0: y, vl: x, vr: x, vc: x }
+
+  function buildChannels(vnetId) {
+    const vb = boxes[vnetId];
+    const subs = subBoxes[vnetId] || [];
+    if (!vb) return null;
+
+    // Header corridor — above all subnets
+    const h0 = Math.round(vb.y + 38);
+
+    // Vertical channels: left margin, right margin, column gutter
+    const vl = Math.round(vb.x + IM);
+    const vr = Math.round(vb.x + vb.w - IM);
+
+    // Column gutter: approximate center of VNet (aligns with gap between 2-col subnets)
+    const vc = Math.round(vb.cx);
+
+    // Horizontal channels: corridor + row gaps
+    const hChannels = [h0];
+    if (subs.length > 0) {
+      // Group subnets by row
+      const rows = {};
+      subs.forEach(s => {
+        const row = Math.round((s.y - vb.y - 70) / (s.h + 40));
+        if (!rows[row]) rows[row] = [];
+        rows[row].push(s);
+      });
+      const rowKeys = Object.keys(rows).map(Number).sort((a, b) => a - b);
+      // Row gap = midpoint between bottom of row i and top of row i+1
+      for (let i = 0; i < rowKeys.length - 1; i++) {
+        const rowBottom = Math.max(...rows[rowKeys[i]].map(s => s.y + s.h));
+        const nextRowTop = Math.min(...rows[rowKeys[i + 1]].map(s => s.y));
+        hChannels.push(Math.round((rowBottom + nextRowTop) / 2));
+      }
+    }
+
+    const ch = { h: hChannels, h0, vl, vr, vc, v: [vl, vc, vr] };
+    channels[vnetId] = ch;
+    return ch;
+  }
+
+  // Build channels for all VNets
+  Object.keys(boxes).forEach(buildChannels);
+
+  // Connection point: use corridor height for left/right to keep external routes high
+  function connPt(box, side) {
+    const ch = channels[Object.keys(channels).find(id => {
+      const vb = boxes[id];
+      return vb && Math.abs(vb.x - box.x) < 1 && Math.abs(vb.y - box.y) < 1;
+    })] || {};
+    const corridorY = ch.h0 || Math.round(box.y + 38);
+    if (side === 'right')  return { x: Math.round(box.x + box.w), y: corridorY };
+    if (side === 'left')   return { x: Math.round(box.x),         y: corridorY };
+    if (side === 'bottom') return { x: Math.round(box.cx),        y: Math.round(box.y + box.h) };
+    return { x: Math.round(box.cx), y: Math.round(box.y) };
+  }
 
   // ── Orthogonal route builder ──
 
@@ -1935,23 +2260,39 @@ function renderPeeringLines(g, lk) {
 
   // ── Collision fixer (reusable for external & internal routing) ──
 
-  function fixCollisions(pts, obs) {
-    for (let iter = 0; iter < 8; iter++) {
+  function fixCollisions(pts, obs, clearance) {
+    const C = clearance || 1;  // backwards compatible default
+
+    // Phase 1: Decompose diagonal segments into orthogonal pairs
+    let work = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const prev = work[work.length - 1], cur = pts[i];
+      const isH = Math.abs(prev.y - cur.y) < 1;
+      const isV = Math.abs(prev.x - cur.x) < 1;
+      if (!isH && !isV) {
+        work.push({ x: cur.x, y: prev.y });
+      }
+      work.push(cur);
+    }
+    pts = work;
+
+    // Phase 2: Route around obstacles with proper clearance
+    // Safety: cap iterations and points to prevent performance issues
+    const MAX_ITER = 12, MAX_PTS = 60;
+    for (let iter = 0; iter < MAX_ITER && pts.length < MAX_PTS; iter++) {
       let changed = false;
       for (let i = 0; i < pts.length - 1; i++) {
         const a = pts[i], b = pts[i + 1];
         for (const o of obs) {
           if (!segHits(a.x, a.y, b.x, b.y, o)) continue;
           if (Math.abs(a.y - b.y) < 1) {
-            const above = o.y - 1, below = o.y + o.h + 1;
+            const above = o.y - C, below = o.y + o.h + C;
             const nY = Math.abs(a.y - above) <= Math.abs(a.y - below) ? above : below;
             pts = [...pts.slice(0, i + 1), { x: a.x, y: nY }, { x: b.x, y: nY }, ...pts.slice(i + 1)];
           } else if (Math.abs(a.x - b.x) < 1) {
-            const left = o.x - 1, right = o.x + o.w + 1;
+            const left = o.x - C, right = o.x + o.w + C;
             const nX = Math.abs(a.x - left) <= Math.abs(a.x - right) ? left : right;
             pts = [...pts.slice(0, i + 1), { x: nX, y: a.y }, { x: nX, y: b.y }, ...pts.slice(i + 1)];
-          } else {
-            pts = [...pts.slice(0, i + 1), { x: b.x, y: a.y }, ...pts.slice(i + 1)];
           }
           changed = true; break;
         }
@@ -1959,18 +2300,40 @@ function renderPeeringLines(g, lk) {
       }
       if (!changed) break;
     }
+
+    // Phase 3: Remove duplicate adjacent points
     const cl = [pts[0]];
     for (let i = 1; i < pts.length; i++) {
       const p = pts[i], v = cl[cl.length - 1];
       if (Math.abs(p.x - v.x) > 0.5 || Math.abs(p.y - v.y) > 0.5) cl.push(p);
     }
-    const out = [cl[0]];
+
+    // Phase 4: Remove collinear mid-points
+    const simplified = [cl[0]];
     for (let i = 1; i < cl.length - 1; i++) {
-      const p = out[out.length - 1], c = cl[i], n = cl[i + 1];
+      const p = simplified[simplified.length - 1], c = cl[i], n = cl[i + 1];
       if (!(Math.abs(p.x - c.x) < 0.5 && Math.abs(c.x - n.x) < 0.5) &&
-          !(Math.abs(p.y - c.y) < 0.5 && Math.abs(c.y - n.y) < 0.5)) out.push(c);
+          !(Math.abs(p.y - c.y) < 0.5 && Math.abs(c.y - n.y) < 0.5)) simplified.push(c);
     }
-    out.push(cl[cl.length - 1]);
+    simplified.push(cl[cl.length - 1]);
+
+    // Phase 5: Remove zigzag backtracks
+    let out = simplified;
+    let prevLen;
+    do {
+      prevLen = out.length;
+      const clean = [out[0]];
+      for (let i = 1; i < out.length - 1; i++) {
+        const prev = clean[clean.length - 1], cur = out[i], next = out[i + 1];
+        const allH = Math.abs(prev.y - cur.y) < 0.5 && Math.abs(cur.y - next.y) < 0.5;
+        const allV = Math.abs(prev.x - cur.x) < 0.5 && Math.abs(cur.x - next.x) < 0.5;
+        if (allH || allV) continue;
+        clean.push(cur);
+      }
+      clean.push(out[out.length - 1]);
+      out = clean;
+    } while (out.length < prevLen);
+
     return out;
   }
 
@@ -1980,6 +2343,17 @@ function renderPeeringLines(g, lk) {
     return Object.entries(boxes)
       .filter(([id]) => id !== srcId && id !== dstId)
       .map(([, b]) => pad(b, M));
+  }
+
+  function countBends(pts) {
+    let bends = 0;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const prev = pts[i - 1], cur = pts[i], next = pts[i + 1];
+      const wasH = Math.abs(prev.y - cur.y) < 1;
+      const nowH = Math.abs(cur.y - next.y) < 1;
+      if (wasH !== nowH) bends++;
+    }
+    return bends;
   }
 
   function bestExtRoute(srcId, dstId) {
@@ -1995,52 +2369,100 @@ function renderPeeringLines(g, lk) {
       const sp = connPt(src, ss), dp = connPt(dst, ds);
       const so = stepOut(sp, ss, M), dout = stepOut(dp, ds, M);
       const raw = orthoRoute(sp, so, ss, dp, dout, ds);
-      const pts = fixCollisions(raw.map(p => ({ ...p })), obs);
+      const pts = fixCollisions(raw.map(p => ({ ...p })), obs, M);
       let len = 0;
       for (let i = 0; i < pts.length - 1; i++) len += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
-      if (!best || pts.length < best.pts.length || (pts.length === best.pts.length && len < best.len))
-        best = { ss, ds, pts, len };
+      const bends = countBends(pts);
+      const score = len + 50 * bends;
+      if (!best || score < best.score)
+        best = { ss, ds, pts, len, score };
     }
     return best;
   }
 
-  // ── Internal routing: hub + branches to individual subnets ──
+  // ── Channel-based internal routing ──
 
-  // Hub point in VNet header area (above all subnets)
   function hubPt(vnetId) {
+    const ch = channels[vnetId];
     const vb = boxes[vnetId];
-    return { x: Math.round(vb.cx), y: Math.round(vb.y + 42) };
+    return { x: Math.round(vb.cx), y: ch ? ch.h0 : Math.round(vb.y + 38) };
   }
 
-  // Trunk: gateway → hub (inside VNet, around subnets)
-  function trunkRoute(gwPt, gwSide, hub, obs) {
-    const inDist = 24;  // offset from VNet edge to avoid visual overlap with border
-    const inPt = stepIn(gwPt, gwSide, inDist);
-    let pts;
-    if (hSide(gwSide)) {
-      pts = Math.abs(inPt.y - hub.y) < 1
-        ? [gwPt, inPt, hub]
-        : [gwPt, inPt, { x: inPt.x, y: hub.y }, hub];
-    } else {
-      pts = Math.abs(inPt.x - hub.x) < 1
-        ? [gwPt, inPt, hub]
-        : [gwPt, inPt, { x: hub.x, y: inPt.y }, hub];
+  // Simplify a point array: remove duplicates and collinear mid-points
+  function simplify(pts) {
+    const cl = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i], v = cl[cl.length - 1];
+      if (Math.abs(p.x - v.x) > 0.5 || Math.abs(p.y - v.y) > 0.5) cl.push(p);
     }
-    return fixCollisions(pts, obs);
+    if (cl.length <= 2) return cl;
+    const out = [cl[0]];
+    for (let i = 1; i < cl.length - 1; i++) {
+      const p = out[out.length - 1], c = cl[i], n = cl[i + 1];
+      if (!(Math.abs(p.x - c.x) < 0.5 && Math.abs(c.x - n.x) < 0.5) &&
+          !(Math.abs(p.y - c.y) < 0.5 && Math.abs(c.y - n.y) < 0.5)) out.push(c);
+    }
+    out.push(cl[cl.length - 1]);
+    return out;
   }
 
-  // Branch: hub → subnet top-centre endpoint
-  function branchRoute(hub, cp, obs) {
+  // Trunk: GW → hub via channels (no fixCollisions)
+  function trunkRoute(gwPt, gwSide, hub, obs, vnetId) {
+    const ch = channels[vnetId];
+    const vb = boxes[vnetId];
+    if (!ch || !vb) return [gwPt, hub];
+
+    if (hSide(gwSide)) {
+      // Left/right GW: already at corridor height → horizontal to hub
+      return simplify([gwPt, hub]);
+    }
+
+    // Top/bottom GW: pick nearest vertical channel, go to corridor, then to hub
+    const nearestV = ch.v.reduce((best, x) =>
+      Math.abs(x - gwPt.x) < Math.abs(best - gwPt.x) ? x : best, ch.v[0]);
+    const stepY = gwSide === 'top' ? vb.y + IM : vb.y + vb.h - IM;
+    return simplify([
+      gwPt,
+      { x: gwPt.x, y: stepY },
+      { x: nearestV, y: stepY },
+      { x: nearestV, y: ch.h0 },
+      hub
+    ]);
+  }
+
+  // Branch: hub → subnet endpoint via channels (no fixCollisions)
+  // Uses the channel grid to find the best vertical channel to reach the target subnet.
+  function branchRoute(hub, cp, obs, sub, vnetId) {
     if (Math.abs(cp.x - hub.x) < 1 && Math.abs(cp.y - hub.y) < 1) return [hub, cp];
-    if (Math.abs(cp.x - hub.x) < 1) return fixCollisions([{ ...hub }, { ...cp }], obs);
-    if (Math.abs(cp.y - hub.y) < 1) return fixCollisions([{ ...hub }, { ...cp }], obs);
-    const dy = cp.y - hub.y;
-    // Near subnets (first row): go horizontal then down
-    // Far subnets (lower rows): go vertical through column gap then horizontal
-    const pts = dy < 60
-      ? [{ ...hub }, { x: cp.x, y: hub.y }, { ...cp }]
-      : [{ ...hub }, { x: hub.x, y: cp.y }, { ...cp }];
-    return fixCollisions(pts, obs);
+
+    const ch = channels[vnetId];
+    if (!ch) return [{ ...hub }, { x: cp.x, y: hub.y }, { ...cp }];
+
+    // Determine which row the target subnet is in
+    const vb = boxes[vnetId];
+    const subRow = sub ? Math.round((sub.y - vb.y - 70) / (sub.h + 40)) : 0;
+
+    if (subRow === 0) {
+      // First row: direct L-route from corridor — no subnets above to cross
+      return simplify([{ ...hub }, { x: cp.x, y: hub.y }, { ...cp }]);
+    }
+
+    // Lower rows: find the horizontal channel just above this row (the row gap)
+    // h[0] = corridor, h[1] = gap between row 0 and row 1, etc.
+    const hIdx = Math.min(subRow, ch.h.length - 1);
+    const hChannel = ch.h[hIdx];
+
+    // Pick the best vertical channel: closest to cp.x that doesn't cross a subnet
+    const bestV = ch.v.reduce((best, x) =>
+      Math.abs(x - cp.x) < Math.abs(best - cp.x) ? x : best, ch.v[0]);
+
+    return simplify([
+      { ...hub },
+      { x: bestV, y: hub.y },      // horizontal on corridor to vertical channel
+      { x: bestV, y: hChannel },    // drop on vertical channel to row gap
+      { x: cp.x, y: hChannel },    // horizontal on row gap to target column
+      { ...cp }                     // short drop to endpoint
+    ]);
   }
 
   // NSG security state for a subnet
@@ -2076,6 +2498,19 @@ function renderPeeringLines(g, lk) {
     }
     d += ` L${pts[pts.length - 1].x},${pts[pts.length - 1].y}`;
     return d;
+  }
+
+  function mergeShortSegments(pts, minLen) {
+    if (pts.length <= 2) return pts;
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length - 1; i++) {
+      const prev = out[out.length - 1];
+      const cur = pts[i];
+      const dist = Math.hypot(cur.x - prev.x, cur.y - prev.y);
+      if (dist >= minLen) out.push(cur);
+    }
+    out.push(pts[pts.length - 1]);
+    return out;
   }
 
   // Walk half the total path length
@@ -2168,8 +2603,8 @@ function renderPeeringLines(g, lk) {
     const dstSubObs = (subBoxes[remoteId] || []).map(b => pad(b, IM));
 
     // Trunks: gateway → hub (inside VNet, around subnets)
-    const trSrc = trunkRoute(extPts[0], ss, hubSrc, srcSubObs);
-    const trDst = trunkRoute(extPts[extPts.length - 1], ds, hubDst, dstSubObs);
+    const trSrc = trunkRoute(extPts[0], ss, hubSrc, srcSubObs, sourceId);
+    const trDst = trunkRoute(extPts[extPts.length - 1], ds, hubDst, dstSubObs, remoteId);
 
     // Spine: hub_src ← trunk ← gw_src === ext === gw_dst → trunk → hub_dst
     const srcRev = trSrc.slice().reverse();
@@ -2177,7 +2612,7 @@ function renderPeeringLines(g, lk) {
 
     peerG.append('path')
       .attr('class', 'peering-line')
-      .attr('d', toPath(spine))
+      .attr('d', toPath(mergeShortSegments(spine, 2 * R)))
       .attr('stroke', 'var(--peer-color)');
 
     renderGw(sourceId, ss);
@@ -2214,18 +2649,24 @@ function renderPeeringLines(g, lk) {
         return;
       }
 
-      // Spread branch start points so parallel lines don't overlap.
-      // Auto-shrink spread for many subnets so points stay inside VNet.
-      const vb = boxes[vnetId];
-      const maxSpread = subs.length > 1 ? (vb.w - 2 * IM) / (subs.length - 1) : 0;
-      const SPREAD = subs.length > 1 ? Math.min(16, maxSpread) : 0;
-      const spreadStart = -SPREAD * (subs.length - 1) / 2;
+      // Sort subnets left-to-right, top-to-bottom for consistent branch ordering
+      const sorted = [...subs].sort((a, b) => {
+        const rowA = Math.round(a.y / 50), rowB = Math.round(b.y / 50);
+        if (rowA !== rowB) return rowA - rowB;
+        return a.x - b.x;
+      });
 
-      subs.forEach((sub, si) => {
-        const cp = { x: sub.x + sub.w / 2, y: sub.y - 6 };  // just above top edge of subnet
-        const brObs = subs.filter(s => s !== sub).map(b => pad(b, IM));
+      // Dynamic spread: use available VNet width, cap at 24px per gap
+      const vb = boxes[vnetId];
+      const maxSpread = sorted.length > 1 ? (vb.w - 2 * IM) / (sorted.length - 1) : 0;
+      const SPREAD = sorted.length > 1 ? Math.min(24, maxSpread) : 0;
+      const spreadStart = -SPREAD * (sorted.length - 1) / 2;
+
+      sorted.forEach((sub, si) => {
+        const cp = { x: sub.x + sub.w / 2, y: sub.y - 2 };  // endpoint just above subnet top edge
+        const brObs = sorted.filter(s => s !== sub).map(b => pad(b, IM));
         const branchHub = { x: hub.x + spreadStart + si * SPREAD, y: hub.y };
-        const bPts = branchRoute(branchHub, cp, brObs);
+        const bPts = branchRoute(branchHub, cp, brObs, sub, vnetId);
 
         // NSG security state for coloring
         const sec = nsgState(sub.subId);
@@ -2234,7 +2675,7 @@ function renderPeeringLines(g, lk) {
         // Branch line
         peerG.append('path')
           .attr('class', 'peering-branch')
-          .attr('d', toPath(bPts))
+          .attr('d', toPath(mergeShortSegments(bPts, 2 * R)))
           .attr('stroke', color);
 
         // Endpoint dot
@@ -3347,8 +3788,73 @@ function traceFlow(srcIp, dstIp, dstPort, protocol, lk) {
 }
 
 // ---- Flow UI ----
+function clearFlowHighlight() {
+  const root = document.getElementById('mapRoot');
+  if (!root) return;
+  root.classList.remove('flow-hl');
+  root.querySelectorAll('.flow-src,.flow-dst,.flow-deny').forEach(el => el.classList.remove('flow-src', 'flow-dst', 'flow-deny'));
+  root.querySelectorAll('.flow-path-hl').forEach(el => el.remove());
+}
+
+function highlightFlowPath(srcIp, dstIp, flow) {
+  clearFlowHighlight();
+  const root = document.getElementById('mapRoot');
+  if (!root || !_lk) return;
+
+  const srcSub = findSubnetByIp(srcIp, _lk);
+  const dstSub = findSubnetByIp(dstIp, _lk);
+  if (!srcSub && !dstSub) return;
+
+  const srcVnet = srcSub ? findVnetForSubnet(srcSub.id, _lk) : null;
+  const dstVnet = dstSub ? findVnetForSubnet(dstSub.id, _lk) : null;
+
+  root.classList.add('flow-hl');
+
+  if (srcSub) {
+    const el = root.querySelector(`[data-subnet-id="${CSS.escape(srcSub.id)}"]`);
+    if (el) el.classList.add('flow-src');
+  }
+  if (srcVnet) {
+    const el = root.querySelector(`[data-vnet-id="${CSS.escape(srcVnet.id)}"]`);
+    if (el) el.classList.add('flow-src');
+  }
+  if (dstSub) {
+    const cls = flow.result === 'deny' ? 'flow-deny' : 'flow-dst';
+    const el = root.querySelector(`[data-subnet-id="${CSS.escape(dstSub.id)}"]`);
+    if (el) el.classList.add(cls);
+    if (dstVnet) {
+      const vel = root.querySelector(`[data-vnet-id="${CSS.escape(dstVnet.id)}"]`);
+      if (vel) vel.classList.add(dstVnet.id === srcVnet?.id ? 'flow-src' : cls);
+    }
+  }
+
+  // Draw animated path between source and destination subnets
+  if (srcSub && dstSub) {
+    const srcEl = root.querySelector(`[data-subnet-id="${CSS.escape(srcSub.id)}"]`);
+    const dstEl = root.querySelector(`[data-subnet-id="${CSS.escape(dstSub.id)}"]`);
+    if (srcEl && dstEl) {
+      try {
+        const sb = srcEl.querySelector('rect')?.getBBox() || srcEl.getBBox();
+        const db = dstEl.querySelector('rect')?.getBBox() || dstEl.getBBox();
+        // Transform subnet centers into mapRoot coordinate space (accounts for zoom/pan)
+        const srcCtm = srcEl.getCTM(), dstCtm = dstEl.getCTM(), rootCtm = root.getCTM();
+        if (srcCtm && dstCtm && rootCtm) {
+          const rootInv = rootCtm.inverse();
+          const spt = new DOMPoint(srcCtm.e + sb.x + sb.width / 2, srcCtm.f + sb.y + sb.height / 2).matrixTransform(rootInv);
+          const dpt = new DOMPoint(dstCtm.e + db.x + db.width / 2, dstCtm.f + db.y + db.height / 2).matrixTransform(rootInv);
+          const mx = (spt.x + dpt.x) / 2;
+          d3.select('#mapRoot').append('path')
+            .attr('class', 'flow-path-hl' + (flow.result === 'deny' ? ' denied' : ''))
+            .attr('d', `M${spt.x},${spt.y} L${mx},${spt.y} L${mx},${dpt.y} L${dpt.x},${dpt.y}`);
+        }
+      } catch (e) { console.warn('Flow path drawing failed:', e.message); }
+    }
+  }
+}
+
 function openFlowPanel(srcIp, dstIp, dstPort, protocol) {
-  if (!_lk || !_lk.vnets) return;
+  if (!_lk || !_lk.vnets) { showToast('Load data before tracing flows', 'warn'); return; }
+  if (!srcIp || !srcIp.trim() || !dstIp || !dstIp.trim()) { showToast('Source and destination IPs are required', 'warn'); return; }
   const flow = traceFlow(srcIp, dstIp, dstPort || '443', protocol || 'Tcp', _lk);
   let html = '';
 
@@ -3358,6 +3864,9 @@ function openFlowPanel(srcIp, dstIp, dstPort, protocol) {
   html += `<div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:${resultColor};text-transform:uppercase;margin-bottom:4px">${flow.result === 'allow' ? 'TRAFFIC ALLOWED' : flow.result === 'deny' ? 'TRAFFIC BLOCKED' : 'UNKNOWN'}</div>`;
   html += `<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-secondary)">${esc(srcIp)} &rarr; ${esc(dstIp)}:${esc(dstPort || '443')} (${esc(protocol || 'Tcp')})</div>`;
   html += `</div>`;
+
+  // Back to form button
+  html += `<div style="padding:8px 16px;border-bottom:1px solid var(--border)"><button onclick="openFlowForm()" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;padding:4px 10px">&larr; New Trace</button><button onclick="clearFlowHighlight()" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-secondary);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;padding:4px 10px;margin-left:6px">Clear Highlight</button></div>`;
 
   // Hop-by-hop
   html += `<div class="dp-section"><div class="dp-sec-hdr"><span class="dp-sec-title">Evaluation Steps</span><span class="dp-sec-count">${flow.hops.length}</span><span class="dp-sec-arr">&#9660;</span></div><div class="dp-sec-body">`;
@@ -3377,54 +3886,120 @@ function openFlowPanel(srcIp, dstIp, dstPort, protocol) {
     `${esc(srcIp)} &rarr; ${esc(dstIp)}:${esc(dstPort || '443')}/${esc(protocol || 'Tcp')}`,
     html
   );
+
+  // Highlight path on map
+  highlightFlowPath(srcIp, dstIp, flow);
+}
+
+function getKnownIps() {
+  const ips = [];
+  if (!_lk) return ips;
+  _lk.nics.forEach(nic => {
+    const vmId = nic.virtualMachine?.id;
+    const vmName = vmId ? shortName(_lk.vms.find(v => v.id === vmId) || nic) : shortName(nic);
+    (nic.ipConfigurations || []).forEach(ipc => {
+      if (ipc.privateIpAddress) ips.push({ ip: ipc.privateIpAddress, label: vmName, sub: ipc.subnet?.id || '' });
+    });
+  });
+  return ips;
+}
+
+function buildFlowAcInput(id, placeholder) {
+  return `<div class="flow-ac-wrap">` +
+    `<input id="${id}" type="text" placeholder="${placeholder}" autocomplete="off" style="width:100%;box-sizing:border-box;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:11px">` +
+    `<div class="flow-ac-list" id="${id}Ac"></div></div>`;
+}
+
+function bindFlowAc(inputId) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(inputId + 'Ac');
+  if (!input || !list) { console.warn('bindFlowAc: DOM elements not found for', inputId); return; }
+  const ips = getKnownIps();
+  let selIdx = -1;
+
+  function render(q) {
+    const lq = (q || '').toLowerCase();
+    const matches = lq ? ips.filter(k => k.ip.includes(lq) || k.label.toLowerCase().includes(lq)).slice(0, 12) : ips.slice(0, 12);
+    if (matches.length === 0) { list.classList.remove('open'); return; }
+    list.innerHTML = '';
+    matches.forEach((m, i) => {
+      const item = document.createElement('div');
+      item.className = 'flow-ac-item' + (i === selIdx ? ' selected' : '');
+      item.innerHTML = `<span class="ip">${esc(m.ip)}</span><span class="lbl">${esc(m.label)}</span>`;
+      item.addEventListener('mousedown', e => { e.preventDefault(); input.value = m.ip; list.classList.remove('open'); });
+      list.appendChild(item);
+    });
+    list.classList.add('open');
+  }
+
+  input.addEventListener('input', () => { selIdx = -1; render(input.value); });
+  input.addEventListener('focus', () => render(input.value));
+  input.addEventListener('blur', () => setTimeout(() => list.classList.remove('open'), 150));
+  input.addEventListener('keydown', e => {
+    const items = list.querySelectorAll('.flow-ac-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); selIdx = Math.min(selIdx + 1, items.length - 1); render(input.value); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); selIdx = Math.max(selIdx - 1, 0); render(input.value); }
+    else if (e.key === 'Enter' && selIdx >= 0 && items[selIdx]) { e.preventDefault(); items[selIdx].dispatchEvent(new MouseEvent('mousedown')); }
+    else if (e.key === 'Escape') { list.classList.remove('open'); }
+  });
 }
 
 // Flow form (Shift+T shortcut)
 function openFlowForm() {
-  if (!_lk || !_lk.vnets) return;
-  // Flow tracing is not available in Executive Overview mode
-  if (document.getElementById('layoutMode').value === 'executive') return;
-  // Collect known IPs for suggestions
-  const knownIps = [];
-  _lk.nics.forEach(nic => {
-    (nic.ipConfigurations || []).forEach(ipc => {
-      if (ipc.privateIpAddress) knownIps.push({ ip: ipc.privateIpAddress, label: shortName(nic) });
-    });
-  });
+  if (!_lk || !_lk.vnets) { showToast('Load data before tracing flows', 'warn'); return; }
+  if (document.getElementById('layoutMode').value === 'executive') { showToast('Flow tracer is not available in executive mode', 'warn'); return; }
+  const knownIps = getKnownIps();
 
   let html = '';
   html += `<div class="dp-section"><div class="dp-sec-hdr"><span class="dp-sec-title">Trace Traffic Flow</span><span class="dp-sec-arr">&#9660;</span></div><div class="dp-sec-body">`;
   html += `<div class="dp-kv"><span class="k">Source IP</span></div>`;
-  html += `<input id="flowSrcIp" type="text" placeholder="e.g. 10.1.1.4" style="width:100%;box-sizing:border-box;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:11px;margin-bottom:8px">`;
+  html += buildFlowAcInput('flowSrcIp', 'Type IP or resource name...');
+  html += `<div style="height:8px"></div>`;
   html += `<div class="dp-kv"><span class="k">Destination IP</span></div>`;
-  html += `<input id="flowDstIp" type="text" placeholder="e.g. 10.2.1.4 or 8.8.8.8" style="width:100%;box-sizing:border-box;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:11px;margin-bottom:8px">`;
+  html += buildFlowAcInput('flowDstIp', 'Type IP or resource name...');
+  html += `<div style="height:8px"></div>`;
   html += `<div class="dp-kv"><span class="k">Destination Port</span></div>`;
   html += `<input id="flowDstPort" type="text" placeholder="443" value="443" style="width:100%;box-sizing:border-box;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:11px;margin-bottom:8px">`;
   html += `<div class="dp-kv"><span class="k">Protocol</span></div>`;
   html += `<select id="flowProto" style="width:100%;box-sizing:border-box;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:11px;margin-bottom:12px"><option value="Tcp">TCP</option><option value="Udp">UDP</option><option value="*">Any</option></select>`;
-  html += `<button onclick="openFlowPanel(document.getElementById('flowSrcIp').value,document.getElementById('flowDstIp').value,document.getElementById('flowDstPort').value,document.getElementById('flowProto').value)" style="width:100%;padding:8px;background:var(--accent-blue);color:#fff;border:none;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase">Trace Flow</button>`;
+  html += `<button id="flowTraceBtn" style="width:100%;padding:8px;background:var(--accent-blue);color:#fff;border:none;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase">Trace Flow</button>`;
   html += `</div></div>`;
 
   // Quick test buttons
   if (knownIps.length >= 2) {
     html += `<div class="dp-section"><div class="dp-sec-hdr"><span class="dp-sec-title">Quick Tests</span><span class="dp-sec-arr">&#9660;</span></div><div class="dp-sec-body">`;
-    const src = knownIps[0];
-    const dst = knownIps[Math.min(1, knownIps.length - 1)];
-    html += `<div class="dp-row" style="cursor:pointer" onclick="openFlowPanel('${esc(src.ip)}','${esc(dst.ip)}','443','Tcp')"><span class="val i">HTTPS ${esc(src.label)} &rarr; ${esc(dst.label)}</span></div>`;
-    html += `<div class="dp-row" style="cursor:pointer" onclick="openFlowPanel('${esc(src.ip)}','${esc(dst.ip)}','22','Tcp')"><span class="val p">SSH ${esc(src.label)} &rarr; ${esc(dst.label)}</span></div>`;
-    html += `</div></div>`;
-  }
-
-  // Known IPs list
-  if (knownIps.length > 0) {
-    html += `<div class="dp-section"><div class="dp-sec-hdr collapsed"><span class="dp-sec-title">Known IPs</span><span class="dp-sec-count">${knownIps.length}</span><span class="dp-sec-arr">&#9660;</span></div><div class="dp-sec-body hidden">`;
-    knownIps.forEach(k => {
-      html += `<div class="dp-row"><span class="val copyable">${esc(k.ip)}</span><span class="lbl">${esc(k.label)}</span></div>`;
+    const pairs = [];
+    // Generate meaningful pairs: cross-subnet, cross-vnet
+    for (let i = 0; i < knownIps.length && pairs.length < 4; i++) {
+      for (let j = i + 1; j < knownIps.length && pairs.length < 4; j++) {
+        if (knownIps[i].sub !== knownIps[j].sub) { pairs.push([knownIps[i], knownIps[j]]); }
+      }
+    }
+    if (pairs.length === 0 && knownIps.length >= 2) pairs.push([knownIps[0], knownIps[1]]);
+    pairs.forEach(([s, d]) => {
+      html += `<div class="dp-row" style="cursor:pointer" onclick="openFlowPanel('${esc(s.ip)}','${esc(d.ip)}','443','Tcp')"><span class="val i">${esc(s.label)} &rarr; ${esc(d.label)} :443</span></div>`;
     });
+    // Internet test
+    html += `<div class="dp-row" style="cursor:pointer" onclick="openFlowPanel('${esc(knownIps[0].ip)}','8.8.8.8','53','Udp')"><span class="val p">${esc(knownIps[0].label)} &rarr; Internet (DNS)</span></div>`;
     html += `</div></div>`;
   }
 
   openDetailPanel('Traffic Flow Tracer', 'Evaluate NSG rules + routing for a packet', html);
+
+  // Bind autocomplete after DOM insertion
+  setTimeout(() => {
+    bindFlowAc('flowSrcIp');
+    bindFlowAc('flowDstIp');
+    const traceBtn = document.getElementById('flowTraceBtn');
+    if (traceBtn) traceBtn.addEventListener('click', () => {
+      openFlowPanel(
+        document.getElementById('flowSrcIp').value,
+        document.getElementById('flowDstIp').value,
+        document.getElementById('flowDstPort').value,
+        document.getElementById('flowProto').value
+      );
+    });
+  }, 50);
 }
 
 // ============================================================
@@ -4510,7 +5085,8 @@ function generateDemo() {
   setInput('in_lbs', loadBalancers);
   setInput('in_disks', disks);
 
-  // Auto-render
+  // Update sidebar badges and auto-render
+  updateAllBadges();
   renderMap();
 }
 
@@ -4866,13 +5442,19 @@ document.addEventListener('keydown', e => {
   // Don't handle if typing in an input
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
-  if (e.key === '/') { e.preventDefault(); openSearch() }
+  if (e.key === '?' || (e.key === '/' && e.shiftKey)) { e.preventDefault(); document.getElementById('kbOverlay').classList.toggle('open') }
+  else if (e.key === '/') { e.preventDefault(); openSearch() }
   else if (e.key === 'Escape') {
+    const kb = document.getElementById('kbOverlay');
+    if (kb.classList.contains('open')) { kb.classList.remove('open'); return }
     closeSearch();
     closeDetailPanel();
   }
   else if (e.key === '+' || e.key === '=') { document.getElementById('zoomIn').click() }
   else if (e.key === '-') { document.getElementById('zoomOut').click() }
+  else if (e.key === 'f') { document.getElementById('zoomFit').click() }
+  else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) { renderMap() }
+  else if (e.key === 'd' && !e.ctrlKey && !e.metaKey) { generateDemo() }
   else if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.getElementById('saveProjectBtn').click() }
   else if (e.key === 'T' && e.shiftKey) { e.preventDefault(); if (document.getElementById('layoutMode').value !== 'executive') openFlowForm() }
   else if (e.key === 'C' && e.shiftKey) { e.preventDefault(); openComplianceDashboard() }
@@ -4883,6 +5465,7 @@ document.getElementById('renderBtn').addEventListener('click', renderMap);
 document.getElementById('loadDemo').addEventListener('click', generateDemo);
 document.getElementById('clearBtn').addEventListener('click', () => {
   document.querySelectorAll('.ji').forEach(el => { el.value = ''; el.className = 'ji' });
+  updateAllBadges();
   d3.select('#mapSvg').selectAll('*').remove();
   document.getElementById('emptyState').style.display = 'flex';
   document.getElementById('emptyTitle').textContent = 'No data loaded';

@@ -123,13 +123,13 @@
   .gw-id{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-muted);pointer-events:none;opacity:.6}
   .gw-name{font-family:'IBM Plex Mono',monospace;font-size:calc(8px * var(--txt-scale));fill:var(--text-secondary);pointer-events:none}
   .route-line{fill:none;stroke-width:1.5;opacity:.35;pointer-events:none}
-  .peering-line{fill:none;stroke-width:1.5;opacity:.45}
+  .peering-line{fill:none;stroke-width:2;opacity:.6;stroke-dasharray:none}
   .peering-gw{cursor:pointer}
   .peering-gw rect{transition:fill-opacity .15s}
   .peering-gw:hover rect{fill-opacity:.35}
   .peering-gw text{pointer-events:none}
-  .peering-branch{fill:none;stroke-width:1.1;opacity:.4;stroke-dasharray:6 3;animation:branchFlow 1.5s linear infinite}
-  @keyframes branchFlow{to{stroke-dashoffset:-18}}
+  .peering-branch{fill:none;stroke-width:0.8;opacity:.35;stroke-dasharray:4 4;animation:branchFlow 2s linear infinite}
+  @keyframes branchFlow{to{stroke-dashoffset:-16}}
   .peering-ep{cursor:pointer;transition:opacity .15s}
   .peering-ep:hover{opacity:1}
   .animated{animation:dashFlow 1s linear infinite}

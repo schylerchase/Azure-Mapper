@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'">
 <title>Azure Network Topology Map</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" integrity="sha512-vc58qvvBdrDR4etbxMdlTt4GBQk1qjvyORR2nrsPsFPyrs+/u5c3+1Ct6upOgdZoIl7eq6k3a1UPDSNAQi/32A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
   :root {
@@ -1547,7 +1547,7 @@ function closeDetailPanel() {
 // UTILITY FUNCTIONS
 // ============================================================
 
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/'/g, '&#39;').replace(/\\/g, '&#92;') }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\\/g, '&#92;') }
 
 function safeParse(t) {
   if (!t || !t.trim()) return [];
@@ -8197,7 +8197,7 @@ function generateDemo() {
       id: nicId(rg, nName), name: nName, location: LOC,
       ipConfigurations: [{ name: 'ipconfig1', subnet: subnetRef, privateIpAddress: privateIp, primary: true, publicIpAddress: pipRef || null }],
       networkSecurityGroup: nsgRef || null,
-      virtualMachine: { id: vmId(rg, vmName) }, macAddress: '00-0D-3A-' + (Math.random().toString(16).substr(2, 8).padEnd(8, '0').match(/../g) || ['00','00','00','00']).join('-').toUpperCase().substring(0, 8)
+      virtualMachine: { id: vmId(rg, vmName) }, macAddress: '00-0D-3A-' + (Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(16).padStart(2, '0')).join('-')).toUpperCase()
     };
     const vm = {
       id: vmId(rg, vmName), name: vmName, location: LOC, resourceGroup: rg,

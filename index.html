@@ -1240,6 +1240,144 @@
   }
 }
 
+/* ============================================================
+   NSG / FIREWALL DASHBOARD
+   ============================================================ */
+.nsg-dash-overlay{position:fixed;inset:0;z-index:120;display:none;background:rgba(10,14,23,.97);flex-direction:column;backdrop-filter:blur(8px)}
+.nsg-dash-overlay.open{display:flex}
+.nsg-dash-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg-secondary);flex-shrink:0}
+.nsg-dash-title{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--accent-cyan);text-transform:uppercase;letter-spacing:1px}
+.nsg-dash-close{width:28px;height:28px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:5px;color:var(--text-muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.nsg-dash-close:hover{background:var(--border);color:var(--text-primary)}
+.nsg-dash-toolbar{display:flex;align-items:center;gap:8px;padding:10px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.nsg-dash-search{flex:1;min-width:200px;height:32px;background:var(--bg-input);border:1px solid var(--border);border-radius:5px;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:0 10px}
+.nsg-dash-search:focus{outline:none;border-color:var(--border-focus)}
+.nsg-dash-pill{padding:5px 12px;border-radius:12px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-secondary);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px}
+.nsg-dash-pill:hover{border-color:var(--accent-blue);color:var(--text-primary)}
+.nsg-dash-pill.active{background:rgba(59,130,246,.15);border-color:var(--accent-blue);color:var(--accent-blue)}
+.nsg-dash-cards{display:flex;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.nsg-summary-card{flex:1;min-width:140px;padding:12px 16px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s}
+.nsg-summary-card:hover{border-color:var(--accent-blue)}
+.nsg-summary-card.active{border-color:var(--accent-cyan);background:rgba(6,182,212,.08)}
+.nsg-summary-card .card-val{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--text-primary)}
+.nsg-summary-card .card-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.nsg-dash-body{flex:1;overflow-y:auto;padding:0}
+.nsg-dash-body::-webkit-scrollbar{width:6px}
+.nsg-dash-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.nsg-tbl{width:100%;border-collapse:collapse}
+.nsg-tbl th{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;position:sticky;top:0;background:var(--bg-secondary);z-index:2}
+.nsg-tbl th:hover{color:var(--text-primary)}
+.nsg-tbl th .sort-arr{font-size:8px;margin-left:4px;opacity:.5}
+.nsg-tbl th.sorted .sort-arr{opacity:1;color:var(--accent-cyan)}
+.nsg-tbl td{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-secondary);padding:8px 12px;border-bottom:1px solid rgba(30,45,74,.3);vertical-align:top}
+.nsg-tbl tr:hover td{background:rgba(59,130,246,.04)}
+.nsg-tbl .type-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:600;text-transform:uppercase}
+.nsg-tbl .type-badge.nsg{background:rgba(16,185,129,.15);color:var(--accent-green)}
+.nsg-tbl .type-badge.rt{background:rgba(245,158,11,.15);color:var(--accent-orange)}
+.nsg-tbl .type-badge.fw{background:rgba(236,72,153,.15);color:var(--accent-pink)}
+.nsg-tbl .name-link{color:var(--accent-cyan);cursor:pointer;transition:opacity .15s}
+.nsg-tbl .name-link:hover{opacity:.8;text-decoration:underline}
+.nsg-row-expand{background:var(--bg-primary);border-bottom:1px solid var(--border)}
+.nsg-row-expand td{padding:0}
+.nsg-rules-inner{padding:8px 16px 12px 36px}
+.nsg-rules-inner .fw-rule-bar{font-size:10px}
+.nsg-dash-footer{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg-secondary)}
+.nsg-dash-footer .footer-info{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted)}
+.nsg-dash-footer button{padding:6px 14px;border-radius:5px;background:var(--bg-tertiary);border:1px solid var(--border);color:var(--text-secondary);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:all .15s}
+.nsg-dash-footer button:hover{background:var(--border);color:var(--text-primary)}
+
+/* ============================================================
+   HIGHLIGHT MODE
+   ============================================================ */
+#mapRoot.hl-active .vnet-group{opacity:.12;transition:opacity .25s}
+#mapRoot.hl-active .vnet-group.hl-vnet{opacity:1}
+#mapRoot.hl-active .subnet-node{opacity:.12;transition:opacity .25s}
+#mapRoot.hl-active .subnet-node.hl-sub{opacity:1}
+#mapRoot.hl-active .gw-node{opacity:.12;transition:opacity .25s}
+#mapRoot.hl-active .gw-node.hl-gw{opacity:1}
+#mapRoot.hl-active .peering-group{opacity:.05;transition:opacity .25s}
+#mapRoot.hl-active .peering-ep{opacity:.05;transition:opacity .25s}
+.hl-locked-indicator{display:none}
+.hl-locked-indicator.visible{display:block}
+
+/* ============================================================
+   DESIGN MODE
+   ============================================================ */
+.design-banner{position:fixed;top:0;left:0;right:0;z-index:100;display:none;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:linear-gradient(135deg,rgba(245,158,11,.95),rgba(249,115,22,.95));color:#000;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;backdrop-filter:blur(8px)}
+.design-banner.visible{display:flex}
+.design-banner button{padding:4px 12px;border-radius:4px;border:1px solid rgba(0,0,0,.3);background:rgba(0,0,0,.15);color:#000;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;text-transform:uppercase}
+.design-banner button:hover{background:rgba(0,0,0,.25)}
+.design-added rect{stroke:var(--accent-green)!important;stroke-width:2.5px!important;stroke-dasharray:6 3!important}
+.design-modified rect{stroke:var(--accent-orange)!important;stroke-width:2.5px!important}
+.design-removed{opacity:.4!important}
+.design-removed rect{stroke:var(--accent-red)!important;stroke-dasharray:6 3!important}
+
+/* ============================================================
+   DIFF / COMPARE MODE
+   ============================================================ */
+.diff-banner{position:fixed;top:0;left:0;right:0;z-index:100;display:none;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:linear-gradient(135deg,rgba(139,92,246,.95),rgba(59,130,246,.95));color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500}
+.diff-banner.visible{display:flex}
+.diff-banner button{padding:4px 12px;border-radius:4px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-family:inherit;font-size:10px;cursor:pointer;text-transform:uppercase}
+.diff-banner button:hover{background:rgba(255,255,255,.2)}
+.diff-added{filter:drop-shadow(0 0 6px #10b981)!important}
+.diff-added rect,.diff-added circle{stroke:#10b981!important;stroke-width:2.5px!important}
+.diff-removed{filter:drop-shadow(0 0 6px #ef4444)!important;opacity:.55!important}
+.diff-removed rect,.diff-removed circle{stroke:#ef4444!important;stroke-dasharray:6 3!important;stroke-width:2.5px!important}
+@keyframes diff-pulse{0%,100%{filter:drop-shadow(0 0 4px #f59e0b)}50%{filter:drop-shadow(0 0 10px #fbbf24)}}
+.diff-modified{animation:diff-pulse 1.8s ease-in-out infinite!important}
+.diff-modified rect,.diff-modified circle{stroke:#f59e0b!important;stroke-width:2.5px!important}
+.diff-unchanged-dim{opacity:.15!important;transition:opacity .3s}
+
+/* ============================================================
+   RESOURCE GOVERNANCE
+   ============================================================ */
+.gov-tier-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.gov-tier-badge.critical{background:rgba(239,68,68,.15);color:#ef4444}
+.gov-tier-badge.high{background:rgba(245,158,11,.15);color:#f59e0b}
+.gov-tier-badge.medium{background:rgba(6,182,212,.15);color:#06b6d4}
+.gov-tier-badge.low{background:rgba(100,116,139,.15);color:#64748b}
+
+/* ============================================================
+   REPORT BUILDER
+   ============================================================ */
+.rpt-overlay{position:fixed;inset:0;z-index:130;display:none;background:rgba(10,14,23,.97);flex-direction:column;backdrop-filter:blur(8px)}
+.rpt-overlay.open{display:flex}
+.rpt-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg-secondary);flex-shrink:0}
+.rpt-main{display:flex;flex:1;overflow:hidden}
+.rpt-picker{width:320px;border-right:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.rpt-picker::-webkit-scrollbar{width:6px}
+.rpt-picker::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.rpt-mod-card{padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;user-select:none}
+.rpt-mod-card:hover{border-color:var(--accent-blue)}
+.rpt-mod-card.active{border-color:var(--accent-cyan);background:rgba(6,182,212,.08)}
+.rpt-mod-card.disabled{opacity:.4;cursor:not-allowed}
+.rpt-mod-card .mod-name{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--text-primary)}
+.rpt-mod-card .mod-desc{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:2px}
+.rpt-preview{flex:1;overflow-y:auto;padding:20px 24px;background:var(--bg-primary)}
+.rpt-preview::-webkit-scrollbar{width:6px}
+.rpt-preview::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ============================================================
+   RIGHT-CLICK CONTEXT MENU
+   ============================================================ */
+.ctx-menu{position:fixed;display:none;z-index:150;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:4px 0;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.5);backdrop-filter:blur(12px)}
+.ctx-menu.open{display:block}
+.ctx-item{padding:7px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s}
+.ctx-item:hover{background:rgba(59,130,246,.12);color:var(--text-primary)}
+.ctx-item .ctx-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.ctx-sep{height:1px;background:var(--border);margin:4px 0}
+
+/* Detail Level: Collapsed (0) — hide labels and secondary badges */
+#mapRoot.detail-collapsed text.resource-label,
+#mapRoot.detail-collapsed text.badge-text,
+#mapRoot.detail-collapsed .resource-detail-text,
+#mapRoot.detail-collapsed .subnet-info-row text{display:none}
+#mapRoot.detail-collapsed .nsg-badge,#mapRoot.detail-collapsed .rt-badge,
+#mapRoot.detail-collapsed .nat-badge{opacity:0.3}
+
+/* Detail Level: Expanded (2) — show extra info */
+#mapRoot.detail-expanded .ip-label,#mapRoot.detail-expanded .cidr-expanded{display:block !important}
+
 
 </style>
 </head>
@@ -1347,6 +1485,10 @@
     <button id="complianceBtn" style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--accent-red);color:var(--accent-red);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="Compliance Dashboard (Shift+C)" onclick="openComplianceDashboard()">Compliance</button>
     <button style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--accent-cyan);color:var(--accent-cyan);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="Resource List (Shift+R)" onclick="openResourceListIndex()">Resources</button>
     <button style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--accent-orange);color:var(--accent-orange);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="Notes (N)" onclick="openNotesPanel()">Notes</button>
+    <div style="width:1px;height:18px;background:var(--border);opacity:.5"></div>
+    <button style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--nsg-color);color:var(--nsg-color);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="NSG / Firewall Dashboard (Shift+F)" onclick="openNsgDashboard()">Firewall</button>
+    <button style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--accent-blue);color:var(--accent-blue);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="Governance (Shift+G)" onclick="openGovernanceDashboard()">Govern</button>
+    <button style="height:30px;border-radius:15px;background:var(--bg-card);border:1px solid var(--accent-pink);color:var(--accent-pink);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 14px;transition:all .15s" title="Report Builder (Shift+B)" onclick="openReportBuilder()">Report</button>
     <button id="scanAzureBtn" style="display:none;height:30px;border-radius:15px;background:var(--bg-card);border:1px solid #f59e0b;color:#f59e0b;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;align-items:center;gap:5px;padding:0 14px;transition:all .15s;font-weight:600" title="Scan Azure subscription via CLI">Scan Azure</button>
   </div>
   <input type="file" id="loadProjectInput" accept=".azuremap,.json" style="display:none">
@@ -1394,6 +1536,10 @@
       <div class="kb-row"><span class="kb-action">Resource List</span><span class="kb-key">Shift+R</span></div>
       <div class="kb-row"><span class="kb-action">Notes Panel</span><span class="kb-key">N</span></div>
       <div class="kb-row"><span class="kb-action">History Timeline</span><span class="kb-key">H</span></div>
+      <div class="kb-row"><span class="kb-action">NSG / Firewall Dashboard</span><span class="kb-key">&#8679;F</span></div>
+      <div class="kb-row"><span class="kb-action">Governance Dashboard</span><span class="kb-key">&#8679;G</span></div>
+      <div class="kb-row"><span class="kb-action">Report Builder</span><span class="kb-key">&#8679;B</span></div>
+      <div class="kb-row"><span class="kb-action">Design Mode</span><span class="kb-key">&#8679;D</span></div>
       <div class="kb-row"><span class="kb-action">Show this help</span><span class="kb-key">?</span></div>
     </div>
   </div>
@@ -1417,6 +1563,44 @@
   </div>
 </div>
 
+<!-- NSG / Firewall Dashboard Overlay -->
+<div class="nsg-dash-overlay" id="nsgDashOverlay">
+  <div class="nsg-dash-hdr"><span class="nsg-dash-title">NSG / Firewall Dashboard</span><button class="nsg-dash-close" onclick="closeNsgDashboard()">x</button></div>
+  <div class="nsg-dash-toolbar" id="nsgDashToolbar"></div>
+  <div class="nsg-dash-cards" id="nsgDashCards"></div>
+  <div class="nsg-dash-body" id="nsgDashBody"></div>
+  <div class="nsg-dash-footer" id="nsgDashFooter"></div>
+</div>
+<!-- Report Builder Overlay -->
+<div class="rpt-overlay" id="rptOverlay">
+  <div class="rpt-hdr"><span class="nsg-dash-title">Report Builder</span><button class="nsg-dash-close" onclick="closeReportBuilder()">x</button></div>
+  <div class="rpt-main"><div class="rpt-picker" id="rptPicker"></div><div class="rpt-preview" id="rptPreview"></div></div>
+</div>
+<!-- Design Mode Banner -->
+<div class="design-banner" id="designBanner">
+  <span>DESIGN MODE</span>
+  <button onclick="openDesignPalette()">Add Resource</button>
+  <button onclick="openDesignChangeLog()">Change Log</button>
+  <button onclick="applyDesignChanges()">Apply</button>
+  <button onclick="exitDesignMode()">Exit</button>
+</div>
+<!-- Diff Banner -->
+<div class="diff-banner" id="diffBanner">
+  <span id="diffBannerText">Comparing snapshots</span>
+  <button onclick="toggleDiffFilter()">Toggle Changes Only</button>
+  <button onclick="exitDiffMode()">Exit Diff</button>
+</div>
+<!-- Right-Click Context Menu -->
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" data-ctx="flow-from"><span class="ctx-icon">&#8594;</span>Trace flow FROM here</div>
+  <div class="ctx-item" data-ctx="flow-to"><span class="ctx-icon">&#8592;</span>Trace flow TO here</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" data-ctx="blast"><span class="ctx-icon">&#9672;</span>Blast radius</div>
+  <div class="ctx-item" data-ctx="highlight"><span class="ctx-icon">&#9733;</span>Highlight connections</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" data-ctx="detail"><span class="ctx-icon">&#9432;</span>View details</div>
+  <div class="ctx-item" data-ctx="note"><span class="ctx-icon">&#9998;</span>Add note</div>
+</div>
 <!-- === NEW FEATURES HTML === -->
 <!-- Notes Form Overlay -->
 <div id="noteFormOverlay" class="note-form-overlay">
@@ -1621,7 +1805,7 @@ function parseCIDR(cidr) {
   if (prefix < 0 || prefix > 32) return null;
   const ip = (octets[0] << 24 | octets[1] << 16 | octets[2] << 8 | octets[3]) >>> 0;
   const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
-  return { ip, mask, prefix, network: (ip & mask) >>> 0, broadcast: ((ip & mask) | ~mask) >>> 0, size: 1 << (32 - prefix), cidr };
+  return { ip, mask, prefix, network: (ip & mask) >>> 0, broadcast: ((ip & mask) | ~mask) >>> 0, size: prefix === 0 ? 4294967296 : 1 << (32 - prefix), cidr };
 }
 
 function cidrContains(parent, child) {
@@ -2251,6 +2435,7 @@ function buildLookups(data) {
     firewalls: [],
     // Relationship maps
     subnetsByVnet: {},       // vnetId -> subnet[]
+    subnetToVnet: {},        // subnetId -> vnetId
     nicsBySubnet: {},        // subnetId -> nic[]
     vmsByNic: {},            // nicId -> vm
     vmsBySubnet: {},         // subnetId -> vm[]
@@ -2330,7 +2515,10 @@ function buildLookups(data) {
       vnet.subnets.forEach(sub => {
         lk.subnets.push(sub);
         lk.subnetsByVnet[vnet.id].push(sub);
-        if (sub.id) lk.subnetById[sub.id.toLowerCase()] = sub;
+        if (sub.id) {
+          lk.subnetById[sub.id.toLowerCase()] = sub;
+          lk.subnetToVnet[sub.id.toLowerCase()] = vnet.id;
+        }
       });
     }
   });
@@ -5676,7 +5864,7 @@ function runComplianceChecks(lk) {
   }
 
   return findings.sort((a, b) => {
-    const sevOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+    const sevOrder = { CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4 };
     return (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9);
   });
 }
@@ -8922,6 +9110,1406 @@ if (!_isElectron) {
     }
   })();
 }
+
+// ============================================================
+// NSG / FIREWALL DASHBOARD
+// ============================================================
+
+var _nsgDashState = { search: '', filter: 'all', sort: 'name', sortDir: 'asc', cardFilter: null };
+
+function openNsgDashboard() {
+  if (!_lk || !_lk.nsgs) return;
+  _nsgDashState = { search: '', filter: 'all', sort: 'name', sortDir: 'asc', cardFilter: null, cachedFindings: runComplianceChecks(_lk) };
+  document.getElementById('nsgDashOverlay').classList.add('open');
+  _nsgDashRenderToolbar();
+  _nsgDashRender();
+}
+
+function closeNsgDashboard() {
+  document.getElementById('nsgDashOverlay').classList.remove('open');
+}
+
+function _nsgDashRenderToolbar() {
+  var tb = document.getElementById('nsgDashToolbar');
+  var frag = document.createDocumentFragment();
+  var search = document.createElement('input');
+  search.className = 'nsg-dash-search';
+  search.id = 'nsgSearch';
+  search.placeholder = 'Search NSGs, route tables...';
+  search.autocomplete = 'off';
+  search.addEventListener('input', function() { _nsgDashState.search = this.value.toLowerCase(); _nsgDashRender(); });
+  frag.appendChild(search);
+
+  var pillWrap = document.createElement('div');
+  pillWrap.style.cssText = 'display:flex;gap:4px';
+  ['all', 'nsg', 'rt', 'fw'].forEach(function(f) {
+    var btn = document.createElement('button');
+    btn.className = 'nsg-dash-pill' + (_nsgDashState.filter === f ? ' active' : '');
+    btn.dataset.nf = f;
+    btn.textContent = f === 'all' ? 'All' : f === 'nsg' ? 'NSG' : f === 'rt' ? 'Route Table' : 'Firewall';
+    btn.addEventListener('click', function() {
+      _nsgDashState.filter = f;
+      pillWrap.querySelectorAll('.nsg-dash-pill').forEach(function(x) { x.classList.toggle('active', x.dataset.nf === f); });
+      _nsgDashRender();
+    });
+    pillWrap.appendChild(btn);
+  });
+  frag.appendChild(pillWrap);
+  tb.textContent = '';
+  tb.appendChild(frag);
+}
+
+function _nsgDashRender() {
+  var rows = [];
+  var findings = _nsgDashState.cachedFindings || [];
+  var findingsByRes = {};
+  findings.forEach(function(f) { var k = (f.resourceId || f.resource || '').toLowerCase(); if (!findingsByRes[k]) findingsByRes[k] = []; findingsByRes[k].push(f); });
+
+  (_lk.nsgs || []).forEach(function(nsg) {
+    var rules = nsg.securityRules || [];
+    var nsgId = (nsg.id || '').toLowerCase();
+    var comp = findingsByRes[nsgId] || [];
+    var openIngress = rules.some(function(r) { return (r.direction || '').toLowerCase() === 'inbound' && (r.access || '').toLowerCase() === 'allow' && (r.sourceAddressPrefix === '*' || r.sourceAddressPrefix === '0.0.0.0/0' || r.sourceAddressPrefix === 'Internet'); });
+    rows.push({ type: 'nsg', id: nsg.id, name: nsg.name || shortName(nsg), rules: rules.length, obj: nsg, comp: comp, openIngress: openIngress, worstSev: _worstSev(comp) });
+  });
+
+  (_lk.routeTables || []).forEach(function(rt) {
+    var routes = rt.routes || [];
+    var rtId = (rt.id || '').toLowerCase();
+    var comp = findingsByRes[rtId] || [];
+    rows.push({ type: 'rt', id: rt.id, name: rt.name || shortName(rt), rules: routes.length, obj: rt, comp: comp, openIngress: false, worstSev: _worstSev(comp) });
+  });
+
+  (_lk.firewalls || []).forEach(function(fw) {
+    var fwId = (fw.id || '').toLowerCase();
+    var comp = findingsByRes[fwId] || [];
+    rows.push({ type: 'fw', id: fw.id, name: fw.name || shortName(fw), rules: 0, obj: fw, comp: comp, openIngress: false, worstSev: _worstSev(comp) });
+  });
+
+  // Build summary cards using DOM methods
+  var totalFindings = rows.reduce(function(s, r) { return s + r.comp.length; }, 0);
+  var openCount = rows.filter(function(r) { return r.openIngress; }).length;
+  var cardsEl = document.getElementById('nsgDashCards');
+  cardsEl.textContent = '';
+  [['all', rows.length, 'Total Resources', null],
+   ['findings', totalFindings, 'Compliance Findings', totalFindings > 0 ? 'var(--accent-red)' : 'var(--accent-green)'],
+   ['open', openCount, 'Open Ingress', openCount > 0 ? 'var(--accent-orange)' : 'var(--accent-green)']
+  ].forEach(function(c) {
+    var card = document.createElement('div');
+    card.className = 'nsg-summary-card' + (_nsgDashState.cardFilter === c[0] ? ' active' : '');
+    card.dataset.cf = c[0];
+    var val = document.createElement('div');
+    val.className = 'card-val';
+    val.textContent = c[1];
+    if (c[3]) val.style.color = c[3];
+    var lbl = document.createElement('div');
+    lbl.className = 'card-lbl';
+    lbl.textContent = c[2];
+    card.appendChild(val);
+    card.appendChild(lbl);
+    card.addEventListener('click', function() {
+      _nsgDashState.cardFilter = (_nsgDashState.cardFilter === c[0]) ? null : c[0];
+      cardsEl.querySelectorAll('.nsg-summary-card').forEach(function(x) { x.classList.toggle('active', x.dataset.cf === _nsgDashState.cardFilter); });
+      _nsgDashRender();
+    });
+    cardsEl.appendChild(card);
+  });
+
+  // Filter chain
+  var filtered = rows.slice();
+  if (_nsgDashState.cardFilter === 'findings') filtered = filtered.filter(function(r) { return r.comp.length > 0; });
+  if (_nsgDashState.cardFilter === 'open') filtered = filtered.filter(function(r) { return r.openIngress; });
+  if (_nsgDashState.filter !== 'all') filtered = filtered.filter(function(r) { return r.type === _nsgDashState.filter; });
+  if (_nsgDashState.search) filtered = filtered.filter(function(r) { return (r.name + ' ' + r.id + ' ' + r.type).toLowerCase().includes(_nsgDashState.search); });
+
+  // Sort
+  var dir = _nsgDashState.sortDir === 'asc' ? 1 : -1;
+  var sevOrder = { CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4, '': 9 };
+  filtered.sort(function(a, b) {
+    if (_nsgDashState.sort === 'type') return dir * a.type.localeCompare(b.type) || a.name.localeCompare(b.name);
+    if (_nsgDashState.sort === 'rules') return dir * (b.rules - a.rules);
+    if (_nsgDashState.sort === 'severity') return dir * ((sevOrder[a.worstSev] || 9) - (sevOrder[b.worstSev] || 9));
+    if (_nsgDashState.sort === 'ingress') return dir * ((b.openIngress ? 1 : 0) - (a.openIngress ? 1 : 0));
+    return dir * a.name.localeCompare(b.name);
+  });
+
+  // Build table using DOM methods
+  var body = document.getElementById('nsgDashBody');
+  var tbl = document.createElement('table');
+  tbl.className = 'nsg-tbl';
+  var thead = document.createElement('thead');
+  var hrow = document.createElement('tr');
+  var cols = [['Type','type'],['Name','name'],['Rules','rules'],['Findings','severity'],['Open Ingress','ingress']];
+  cols.forEach(function(c) {
+    var th = document.createElement('th');
+    th.dataset.nsort = c[1];
+    var sorted = _nsgDashState.sort === c[1];
+    if (sorted) th.classList.add('sorted');
+    th.textContent = c[0];
+    var arr = document.createElement('span');
+    arr.className = 'sort-arr';
+    arr.textContent = sorted ? (_nsgDashState.sortDir === 'asc' ? '\u25B2' : '\u25BC') : '\u25B2';
+    th.appendChild(arr);
+    th.addEventListener('click', function() {
+      if (_nsgDashState.sort === c[1]) _nsgDashState.sortDir = _nsgDashState.sortDir === 'asc' ? 'desc' : 'asc';
+      else { _nsgDashState.sort = c[1]; _nsgDashState.sortDir = 'asc'; }
+      _nsgDashRender();
+    });
+    hrow.appendChild(th);
+  });
+  thead.appendChild(hrow);
+  tbl.appendChild(thead);
+
+  var tbody = document.createElement('tbody');
+  filtered.forEach(function(r, idx) {
+    var tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    // Type cell
+    var td1 = document.createElement('td');
+    var badge = document.createElement('span');
+    badge.className = 'type-badge ' + (r.type === 'nsg' ? 'nsg' : r.type === 'rt' ? 'rt' : 'fw');
+    badge.textContent = r.type === 'nsg' ? 'NSG' : r.type === 'rt' ? 'UDR' : 'FW';
+    td1.appendChild(badge);
+    tr.appendChild(td1);
+    // Name cell
+    var td2 = document.createElement('td');
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'name-link';
+    nameSpan.textContent = r.name;
+    td2.appendChild(nameSpan);
+    tr.appendChild(td2);
+    // Rules cell
+    var td3 = document.createElement('td');
+    td3.textContent = r.rules;
+    tr.appendChild(td3);
+    // Findings cell
+    var td4 = document.createElement('td');
+    if (r.comp.length > 0) {
+      var sevBadge = document.createElement('span');
+      sevBadge.className = 'sev-badge sev-' + r.worstSev;
+      sevBadge.textContent = r.comp.length + ' ' + r.worstSev;
+      td4.appendChild(sevBadge);
+    } else {
+      var clean = document.createElement('span');
+      clean.style.color = 'var(--accent-green)';
+      clean.textContent = 'Clean';
+      td4.appendChild(clean);
+    }
+    tr.appendChild(td4);
+    // Open Ingress cell
+    var td5 = document.createElement('td');
+    if (r.openIngress) {
+      var yesSpan = document.createElement('span');
+      yesSpan.style.cssText = 'color:var(--accent-red);font-weight:600';
+      yesSpan.textContent = 'YES';
+      td5.appendChild(yesSpan);
+    } else { td5.textContent = '-'; }
+    tr.appendChild(td5);
+
+    // Click to expand
+    var expTr = document.createElement('tr');
+    expTr.className = 'nsg-row-expand';
+    expTr.style.display = 'none';
+    var expTd = document.createElement('td');
+    expTd.colSpan = 5;
+    var inner = document.createElement('div');
+    inner.className = 'nsg-rules-inner';
+    inner.appendChild(_nsgBuildRulesDOM(r));
+    expTd.appendChild(inner);
+    expTr.appendChild(expTd);
+
+    tr.addEventListener('click', function() {
+      expTr.style.display = expTr.style.display === 'none' ? '' : 'none';
+    });
+
+    tbody.appendChild(tr);
+    tbody.appendChild(expTr);
+  });
+  tbl.appendChild(tbody);
+  body.textContent = '';
+  body.appendChild(tbl);
+
+  // Footer
+  var footer = document.getElementById('nsgDashFooter');
+  footer.textContent = '';
+  var info = document.createElement('span');
+  info.className = 'footer-info';
+  info.textContent = 'Showing ' + filtered.length + ' of ' + rows.length + ' resources';
+  footer.appendChild(info);
+  var btns = document.createElement('div');
+  btns.style.cssText = 'display:flex;gap:6px';
+  ['CSV', 'JSON', 'AZ CLI'].forEach(function(label, i) {
+    var b = document.createElement('button');
+    b.textContent = 'Export ' + label;
+    b.addEventListener('click', [_nsgExportCsv, _nsgExportJson, _nsgExportAzCli][i]);
+    btns.appendChild(b);
+  });
+  footer.appendChild(btns);
+}
+
+function _worstSev(findings) {
+  var order = { CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4 };
+  var worst = '';
+  findings.forEach(function(f) { if (worst === '' || (order[f.severity] || 9) < (order[worst] || 9)) worst = f.severity; });
+  return worst;
+}
+
+function _nsgBuildRulesDOM(row) {
+  var frag = document.createDocumentFragment();
+  if (row.type === 'nsg') {
+    var rules = (row.obj.securityRules || []).sort(function(a, b) { return (a.priority || 9999) - (b.priority || 9999); });
+    if (rules.length === 0) {
+      var empty = document.createElement('span');
+      empty.style.cssText = 'color:var(--text-muted);font-size:10px';
+      empty.textContent = 'No custom rules';
+      frag.appendChild(empty);
+      return frag;
+    }
+    rules.forEach(function(r) {
+      var bar = document.createElement('div');
+      bar.className = 'fw-rule-bar';
+      var isAllow = (r.access || '').toLowerCase() === 'allow';
+      var dir = (r.direction || '').toLowerCase() === 'inbound' ? 'IN' : 'OUT';
+      var port = r.destinationPortRange || (r.destinationPortRanges || []).join(', ') || '*';
+      var src = r.sourceAddressPrefix || (r.sourceAddressPrefixes || []).join(', ') || '*';
+      var proto = (r.protocol || '*').toUpperCase();
+
+      var dirSpan = document.createElement('span');
+      dirSpan.style.cssText = 'color:var(--text-muted);font-size:8px;min-width:20px';
+      dirSpan.textContent = dir;
+      bar.appendChild(dirSpan);
+
+      var arrow = document.createElement('div');
+      arrow.className = 'fw-arrow ' + (isAllow ? 'allow' : 'deny');
+      var line = document.createElement('div');
+      line.className = 'fw-arrow-line';
+      var head = document.createElement('div');
+      head.className = 'fw-arrow-head';
+      arrow.appendChild(line);
+      arrow.appendChild(head);
+      bar.appendChild(arrow);
+
+      var portSpan = document.createElement('span');
+      portSpan.className = 'fw-port ' + (isAllow ? 'allow' : 'deny');
+      portSpan.textContent = port;
+      bar.appendChild(portSpan);
+
+      var protoSpan = document.createElement('span');
+      protoSpan.className = 'fw-proto';
+      protoSpan.textContent = proto;
+      bar.appendChild(protoSpan);
+
+      var srcSpan = document.createElement('span');
+      srcSpan.className = 'fw-src';
+      srcSpan.textContent = src;
+      bar.appendChild(srcSpan);
+
+      var nameSpan = document.createElement('span');
+      nameSpan.style.cssText = 'color:var(--text-muted);font-size:8px;margin-left:8px';
+      nameSpan.textContent = r.name || '';
+      bar.appendChild(nameSpan);
+
+      frag.appendChild(bar);
+    });
+  } else if (row.type === 'rt') {
+    var routes = row.obj.routes || [];
+    if (routes.length === 0) {
+      var empty2 = document.createElement('span');
+      empty2.style.cssText = 'color:var(--text-muted);font-size:10px';
+      empty2.textContent = 'No custom routes';
+      frag.appendChild(empty2);
+      return frag;
+    }
+    routes.forEach(function(r) {
+      var d = document.createElement('div');
+      d.style.cssText = 'font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--text-secondary);padding:2px 0';
+      var prefix = document.createElement('span');
+      prefix.style.color = 'var(--accent-cyan)';
+      prefix.textContent = r.addressPrefix || '*';
+      d.appendChild(prefix);
+      d.appendChild(document.createTextNode(' \u2192 '));
+      var hop = document.createElement('span');
+      hop.style.color = 'var(--accent-orange)';
+      hop.textContent = r.nextHopType || '';
+      d.appendChild(hop);
+      if (r.nextHopIpAddress) {
+        var ip = document.createElement('span');
+        ip.style.color = 'var(--text-muted)';
+        ip.textContent = ' (' + r.nextHopIpAddress + ')';
+        d.appendChild(ip);
+      }
+      frag.appendChild(d);
+    });
+  } else {
+    var msg = document.createElement('span');
+    msg.style.cssText = 'color:var(--text-muted);font-size:10px';
+    msg.textContent = 'Firewall rules managed via Azure Firewall Policy';
+    frag.appendChild(msg);
+  }
+  return frag;
+}
+
+function _csvEsc(s) { return (s || '').replace(/"/g, '""'); }
+
+function _nsgExportCsv() {
+  if (!_lk) return;
+  var csv = 'Type,Name,ID,RuleCount,Direction,Access,Priority,Port,Protocol,Source\n';
+  (_lk.nsgs || []).forEach(function(nsg) {
+    (nsg.securityRules || []).forEach(function(r) {
+      csv += '"NSG","' + _csvEsc(nsg.name) + '","' + _csvEsc(nsg.id) + '",' + (nsg.securityRules||[]).length + ',"' + _csvEsc(r.direction) + '","' + _csvEsc(r.access) + '",' + (r.priority || 0) + ',"' + _csvEsc(r.destinationPortRange || '*') + '","' + _csvEsc(r.protocol || '*') + '","' + _csvEsc(r.sourceAddressPrefix || '*') + '"\n';
+    });
+  });
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a'); a.download = 'azure-nsg-rules.csv'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+function _nsgExportJson() {
+  if (!_lk) return;
+  var data = { nsgs: _lk.nsgs, routeTables: _lk.routeTables, firewalls: _lk.firewalls };
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a'); a.download = 'azure-firewall-data.json'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+function _nsgExportAzCli() {
+  if (!_lk) return;
+  var cli = '#!/bin/bash\n# Azure NSG Rules - generated by Azure Mapper\n\n';
+  (_lk.nsgs || []).forEach(function(nsg) {
+    var parsed = parseResourceId(nsg.id || '');
+    (nsg.securityRules || []).forEach(function(r) {
+      if (!r.name) return;
+      cli += 'az network nsg rule create --resource-group "' + (parsed ? parsed.resourceGroup : 'RESOURCE_GROUP') + '" --nsg-name "' + (nsg.name || '') + '" ';
+      cli += '--name "' + (r.name || '') + '" --priority ' + (r.priority || 100) + ' --direction "' + (r.direction || 'Inbound') + '" --access "' + (r.access || 'Allow') + '" ';
+      cli += '--protocol "' + (r.protocol || '*') + '" --source-address-prefixes "' + (r.sourceAddressPrefix || '*') + '" ';
+      cli += '--destination-port-ranges "' + (r.destinationPortRange || '*') + '"\n';
+    });
+    cli += '\n';
+  });
+  var blob = new Blob([cli], { type: 'text/plain' });
+  var a = document.createElement('a'); a.download = 'azure-nsg-rules.sh'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ============================================================
+// HIGHLIGHT MODE
+// ============================================================
+
+var _hlLocked = false, _hlKey = null;
+
+function highlightSubnet(subId) {
+  var root = document.getElementById('mapRoot');
+  if (!root || !_lk) return;
+  _clearHighlight();
+  root.classList.add('hl-active');
+  var vnetId = _lk.subnetToVnet ? _lk.subnetToVnet[subId] : null;
+  root.querySelectorAll('.subnet-node').forEach(function(el) { if (el.dataset.subnetId === subId) el.classList.add('hl-sub'); });
+  root.querySelectorAll('.vnet-group').forEach(function(el) { if (el.dataset.vnetId === vnetId) el.classList.add('hl-vnet'); });
+}
+
+function highlightGateway(gwId) {
+  var root = document.getElementById('mapRoot');
+  if (!root) return;
+  _clearHighlight();
+  root.classList.add('hl-active');
+  root.querySelectorAll('.gw-node').forEach(function(el) { if (el.dataset.gwid === gwId) el.classList.add('hl-gw'); });
+}
+
+function _clearHighlight() {
+  var root = document.getElementById('mapRoot');
+  if (!root) return;
+  root.classList.remove('hl-active');
+  root.querySelectorAll('.hl-sub').forEach(function(el) { el.classList.remove('hl-sub'); });
+  root.querySelectorAll('.hl-vnet').forEach(function(el) { el.classList.remove('hl-vnet'); });
+  root.querySelectorAll('.hl-gw').forEach(function(el) { el.classList.remove('hl-gw'); });
+  _hlLocked = false; _hlKey = null;
+  document.getElementById('hlLockInd').classList.remove('visible');
+}
+
+function _toggleHighlightLock(type, id) {
+  if (_hlLocked && _hlKey === id) { _clearHighlight(); return; }
+  _clearHighlight();
+  if (type === 'subnet') highlightSubnet(id);
+  else if (type === 'gateway') highlightGateway(id);
+  _hlLocked = true; _hlKey = id;
+  document.getElementById('hlLockInd').classList.add('visible');
+}
+
+document.getElementById('hlLockInd').addEventListener('click', _clearHighlight);
+
+// ============================================================
+// RIGHT-CLICK CONTEXT MENU
+// ============================================================
+
+var _ctxTarget = null;
+
+(function initContextMenu() {
+  var menu = document.getElementById('ctxMenu');
+  document.getElementById('mapSvg').addEventListener('contextmenu', function(e) {
+    var target = _resolveCtxTarget(e.target);
+    if (!target) return;
+    e.preventDefault(); e.stopPropagation();
+    _ctxTarget = target;
+    menu.classList.add('open');
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+    menu.style.top = Math.min(e.clientY, window.innerHeight - 200) + 'px';
+  });
+  document.addEventListener('click', function(e) { if (!menu.contains(e.target)) menu.classList.remove('open'); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') menu.classList.remove('open'); });
+  menu.querySelectorAll('.ctx-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var action = this.dataset.ctx;
+      menu.classList.remove('open');
+      if (!_ctxTarget) return;
+      if (action === 'flow-from') openFlowForm();
+      else if (action === 'flow-to') openFlowForm();
+      else if (action === 'blast') _triggerBlastFromCtx(_ctxTarget);
+      else if (action === 'highlight') _toggleHighlightLock(_ctxTarget.type, _ctxTarget.id);
+      else if (action === 'detail') _openDetailFromCtx(_ctxTarget);
+      else if (action === 'note') openNoteForm(_ctxTarget.id);
+    });
+  });
+})();
+
+function _resolveCtxTarget(el) {
+  var node = el;
+  while (node && node !== document.getElementById('mapSvg')) {
+    if (node.classList && node.classList.contains('subnet-node') && node.dataset.subnetId) return { type: 'subnet', id: node.dataset.subnetId };
+    if (node.classList && node.classList.contains('gw-node') && node.dataset.gwid) return { type: 'gateway', id: node.dataset.gwid };
+    if (node.classList && node.classList.contains('vnet-group') && node.dataset.vnetId) return { type: 'vnet', id: node.dataset.vnetId };
+    node = node.parentElement;
+  }
+  return null;
+}
+
+function _triggerBlastFromCtx(target) {
+  if (!_lk) return;
+  applyBlastRadiusOverlay(target.id);
+}
+
+function _openDetailFromCtx(target) {
+  if (target.type === 'subnet') {
+    var sub = (_lk.subnets || []).find(function(s) { return s.id === target.id; });
+    if (sub) {
+      var vnetId = _lk.subnetToVnet ? _lk.subnetToVnet[(sub.id || '').toLowerCase()] : null;
+      var vnet = vnetId ? (_lk.vnetById || {})[vnetId.toLowerCase()] : null;
+      openSubnetPanel(sub, vnet, _lk);
+    }
+  } else if (target.type === 'vnet') {
+    var vn = (_lk.vnets || []).find(function(v) { return v.id === target.id; });
+    if (vn) openVNetPanel(vn, _lk);
+  }
+}
+
+// ============================================================
+// DESIGN MODE - What-If Subnet Planner
+// ============================================================
+
+var _designMode = false, _designChanges = [], _designBaseline = null;
+
+var _azureConstraints = {
+  vnet: { cidrPrefixMin: 8, cidrPrefixMax: 29 },
+  subnet: { maxPerVnet: 3000, reservedIps: 5, cidrPrefixMin: 8, cidrPrefixMax: 29 },
+  nsg: { maxRulesPerDirection: 1000 },
+  routeTable: { maxRoutesPerTable: 400 },
+  peering: { maxPerVnet: 500 }
+};
+
+function enterDesignMode() {
+  _designMode = true; _designChanges = [];
+  _designBaseline = _snapshotAllInputs();
+  document.getElementById('designBanner').classList.add('visible');
+  showToast('Design mode active \u2014 changes are simulated', 'info');
+}
+
+function exitDesignMode() {
+  _designMode = false;
+  _restoreAllInputs(_designBaseline);
+  _designBaseline = null; _designChanges = [];
+  document.getElementById('designBanner').classList.remove('visible');
+  if (_lk) renderMap();
+  showToast('Design mode exited \u2014 changes discarded', 'info');
+}
+
+function _snapshotAllInputs() {
+  var snap = {};
+  document.querySelectorAll('.ji').forEach(function(ta) { snap[ta.id] = ta.value; });
+  return snap;
+}
+
+function _restoreAllInputs(snap) {
+  if (!snap) return;
+  for (var id in snap) {
+    var el = document.getElementById(id);
+    if (el) el.value = snap[id];
+  }
+}
+
+function openDesignPalette() {
+  if (!_designMode || !_lk) return;
+  // Build palette using DOM
+  var container = document.createElement('div');
+
+  // Add Subnet section
+  var secDiv = document.createElement('div');
+  secDiv.style.cssText = 'padding:12px 16px';
+  var title = document.createElement('div');
+  title.style.cssText = 'font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:600;color:var(--accent-orange);text-transform:uppercase;margin-bottom:8px';
+  title.textContent = 'Add Subnet';
+  secDiv.appendChild(title);
+
+  var vnetSel = document.createElement('select');
+  vnetSel.id = 'dsVnet';
+  vnetSel.style.cssText = 'width:100%;height:30px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:IBM Plex Mono,monospace;font-size:10px;padding:0 6px;margin-bottom:6px';
+  (_lk.vnets || []).forEach(function(v) {
+    var opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.name || shortName(v);
+    vnetSel.appendChild(opt);
+  });
+  secDiv.appendChild(vnetSel);
+
+  var nameInput = document.createElement('input');
+  nameInput.id = 'dsName';
+  nameInput.placeholder = 'new-subnet';
+  nameInput.style.cssText = 'width:100%;height:30px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:IBM Plex Mono,monospace;font-size:10px;padding:0 6px;margin-bottom:6px';
+  secDiv.appendChild(nameInput);
+
+  var cidrInput = document.createElement('input');
+  cidrInput.id = 'dsCidr';
+  cidrInput.placeholder = '10.0.5.0/24';
+  cidrInput.style.cssText = 'width:100%;height:30px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:IBM Plex Mono,monospace;font-size:10px;padding:0 6px;margin-bottom:6px';
+  secDiv.appendChild(cidrInput);
+
+  var addBtn = document.createElement('button');
+  addBtn.textContent = 'Add Subnet';
+  addBtn.style.cssText = 'width:100%;padding:8px;background:var(--accent-orange);border:none;border-radius:5px;color:#000;font-family:IBM Plex Mono,monospace;font-size:10px;font-weight:600;cursor:pointer;text-transform:uppercase';
+  addBtn.addEventListener('click', _designAddSubnet);
+  secDiv.appendChild(addBtn);
+  container.appendChild(secDiv);
+
+  // Open panel with DOM content
+  openDetailPanel('Design Palette', 'Add or modify resources', '');
+  var dpBody = document.getElementById('dpBody');
+  dpBody.textContent = '';
+  dpBody.appendChild(container);
+}
+
+function _designAddSubnet() {
+  var vnetId = document.getElementById('dsVnet') ? document.getElementById('dsVnet').value : '';
+  var name = document.getElementById('dsName') ? document.getElementById('dsName').value.trim() : '';
+  var cidr = document.getElementById('dsCidr') ? document.getElementById('dsCidr').value.trim() : '';
+  if (!name || !cidr) { showToast('Name and CIDR required', 'error'); return; }
+  var parsed = parseCIDR(cidr);
+  if (!parsed) { showToast('Invalid CIDR format', 'error'); return; }
+  if (parsed.prefix < 8 || parsed.prefix > 29) { showToast('Azure subnets require prefix /8 to /29', 'error'); return; }
+
+  var vnet = (_lk.vnets || []).find(function(v) { return v.id === vnetId; });
+  if (vnet) {
+    var vnetCidr = (vnet.addressSpace && vnet.addressSpace.addressPrefixes ? vnet.addressSpace.addressPrefixes[0] : null);
+    if (vnetCidr && !cidrContains(vnetCidr, cidr)) { showToast('Subnet CIDR must be within VNet range', 'error'); return; }
+  }
+
+  var siblings = (_lk.subnetsByVnet || {})[vnetId] || [];
+  for (var i = 0; i < siblings.length; i++) {
+    if (siblings[i].addressPrefix && _cidrsOverlap(cidr, siblings[i].addressPrefix)) {
+      showToast('CIDR overlaps with ' + siblings[i].name, 'error'); return;
+    }
+  }
+
+  _designChanges.push({ action: 'add_subnet', vnetId: vnetId, name: name, cidr: cidr, timestamp: new Date().toISOString() });
+  _applyDesignToInputs();
+  showToast('Subnet "' + name + '" added to design', 'success');
+}
+
+function _cidrsOverlap(a, b) {
+  var pa = parseCIDR(a), pb = parseCIDR(b);
+  if (!pa || !pb) return false;
+  return (pa.network & pb.mask) === pb.network || (pb.network & pa.mask) === pa.network;
+}
+
+function _applyDesignToInputs() {
+  if (!_designBaseline) return;
+  _restoreAllInputs(_designBaseline);
+  _designChanges.forEach(function(ch) {
+    if (ch.action === 'add_subnet') {
+      var ta = document.getElementById('in_subnets');
+      if (!ta) return;
+      var existing = safeParse(ta.value);
+      existing.push({ id: '/subscriptions/design/resourceGroups/design/providers/Microsoft.Network/virtualNetworks/design/subnets/' + ch.name, name: ch.name, addressPrefix: ch.cidr, _design: true });
+      ta.value = JSON.stringify(existing, null, 2);
+    }
+    if (ch.action === 'split_subnet') {
+      var ta2 = document.getElementById('in_subnets');
+      if (!ta2) return;
+      var existing2 = safeParse(ta2.value);
+      var idx = -1;
+      for (var i = 0; i < existing2.length; i++) { if (existing2[i].id === ch.subnetId) { idx = i; break; } }
+      if (idx < 0) return;
+      var orig = existing2[idx];
+      var p = parseCIDR(orig.addressPrefix);
+      if (!p || p.prefix >= 32) return;
+      var newPrefix = p.prefix + 1;
+      var half2Start = p.network + (1 << (32 - newPrefix));
+      var cidr1 = _numToIp(p.network) + '/' + newPrefix;
+      var cidr2 = _numToIp(half2Start) + '/' + newPrefix;
+      existing2.splice(idx, 1, Object.assign({}, orig, { name: orig.name + '-a', addressPrefix: cidr1, id: orig.id + '-a', _design: true }), Object.assign({}, orig, { name: orig.name + '-b', addressPrefix: cidr2, id: orig.id + '-b', _design: true }));
+      ta2.value = JSON.stringify(existing2, null, 2);
+    }
+  });
+  renderMap();
+}
+
+function _numToIp(num) { return [(num >>> 24) & 255, (num >>> 16) & 255, (num >>> 8) & 255, num & 255].join('.'); }
+
+function applyDesignChanges() {
+  if (!_designMode) return;
+  _designBaseline = _snapshotAllInputs();
+  _designChanges = [];
+  showToast('Design changes applied to session', 'success');
+}
+
+function openDesignChangeLog() {
+  if (!_designMode) return;
+  openDetailPanel('Design Change Log', _designChanges.length + ' pending changes', '');
+  var dpBody = document.getElementById('dpBody');
+  dpBody.textContent = '';
+  if (_designChanges.length === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'dp-empty';
+    empty.textContent = 'No changes yet';
+    dpBody.appendChild(empty);
+    return;
+  }
+  _designChanges.forEach(function(ch, i) {
+    var row = document.createElement('div');
+    row.className = 'dp-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px';
+    var action = document.createElement('span');
+    action.className = 'val';
+    action.textContent = ch.action;
+    row.appendChild(action);
+    if (ch.name) { var n = document.createElement('span'); n.className = 'i'; n.textContent = ch.name; row.appendChild(n); }
+    if (ch.cidr) { var c = document.createElement('span'); c.className = 'lbl'; c.textContent = ch.cidr; row.appendChild(c); }
+    var undo = document.createElement('span');
+    undo.className = 'd';
+    undo.style.cssText = 'cursor:pointer;margin-left:auto';
+    undo.textContent = 'undo';
+    undo.addEventListener('click', (function(idx) { return function() { _designChanges.splice(idx, 1); _applyDesignToInputs(); openDesignChangeLog(); }; })(i));
+    row.appendChild(undo);
+    dpBody.appendChild(row);
+  });
+}
+
+// ============================================================
+// DIFF / COMPARE MODE
+// ============================================================
+
+var _diffMode = false, _diffResults = null, _diffFilter = 'all';
+
+function enterDiffMode(baselineData) {
+  if (!_lk) return;
+  _diffMode = true;
+  var baseline = _buildResourceMap(baselineData);
+  var current = _buildResourceMap(_getCurrentData());
+  _diffResults = _computeDiff(baseline, current);
+  document.getElementById('diffBanner').classList.add('visible');
+  var d = _diffResults;
+  document.getElementById('diffBannerText').textContent = 'Diff: ' + d.added.length + ' added, ' + d.removed.length + ' removed, ' + d.modified.length + ' modified';
+  _applyDiffOverlay();
+}
+
+function exitDiffMode() {
+  _diffMode = false; _diffResults = null; _diffFilter = 'all';
+  document.getElementById('diffBanner').classList.remove('visible');
+  _clearDiffOverlay();
+}
+
+function toggleDiffFilter() {
+  _diffFilter = _diffFilter === 'all' ? 'changes' : 'all';
+  _applyDiffOverlay();
+}
+
+function _getCurrentData() {
+  var data = {};
+  document.querySelectorAll('.ji').forEach(function(ta) { if (ta.value.trim()) data[ta.id] = ta.value; });
+  return data;
+}
+
+function _buildResourceMap(data) {
+  var resources = new Map();
+  var types = { in_vnets: 'vnet', in_nsgs: 'nsg', in_rts: 'rt', in_nics: 'nic', in_pips: 'pip', in_natgws: 'nat', in_pes: 'pe', in_asgs: 'asg', in_vms: 'vm', in_funcs: 'func', in_aci: 'aci', in_aks: 'aks', in_appgws: 'appgw', in_lbs: 'lb', in_peerings: 'peering', in_vpnconns: 'vpn', in_vwans: 'vwan', in_vhubs: 'vhub', in_firewalls: 'fw', in_bastions: 'bastion', in_storage: 'storage', in_sqlservers: 'sql', in_redis: 'redis', in_rgs: 'rg', in_dnszones: 'dns', in_frontdoors: 'fd', in_wafpolicies: 'waf' };
+  for (var inputId in types) {
+    var raw = data[inputId];
+    if (!raw) continue;
+    safeParse(raw).forEach(function(r) {
+      var id = r.id || r.name || JSON.stringify(r).substring(0, 64);
+      resources.set(id, { type: types[inputId], data: r, name: r.name || shortName(r) });
+    });
+  }
+  return resources;
+}
+
+function _computeDiff(baseline, current) {
+  var added = [], removed = [], modified = [], unchanged = [];
+  current.forEach(function(val, key) { if (!baseline.has(key)) added.push({ id: key, type: val.type, name: val.name }); });
+  baseline.forEach(function(val, key) { if (!current.has(key)) removed.push({ id: key, type: val.type, name: val.name }); });
+  current.forEach(function(val, key) {
+    if (!baseline.has(key)) return;
+    var bData = JSON.stringify(_normalizeForDiff(baseline.get(key).data));
+    var cData = JSON.stringify(_normalizeForDiff(val.data));
+    if (bData !== cData) modified.push({ id: key, type: val.type, name: val.name });
+    else unchanged.push({ id: key, type: val.type, name: val.name });
+  });
+  return { added: added, removed: removed, modified: modified, unchanged: unchanged };
+}
+
+function _normalizeForDiff(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  var volatile = ['provisioningState', 'etag', 'resourceGuid', 'type'];
+  if (Array.isArray(obj)) return obj.map(_normalizeForDiff);
+  var sorted = {};
+  Object.keys(obj).sort().forEach(function(k) { if (volatile.indexOf(k) < 0) sorted[k] = _normalizeForDiff(obj[k]); });
+  return sorted;
+}
+
+function _applyDiffOverlay() {
+  if (!_diffResults) return;
+  _clearDiffOverlay();
+  var root = document.getElementById('mapRoot');
+  if (!root) return;
+  _diffResults.added.forEach(function(r) { root.querySelectorAll('[data-subnet-id="' + CSS.escape(r.id) + '"],[data-vnet-id="' + CSS.escape(r.id) + '"],[data-gwid="' + CSS.escape(r.id) + '"]').forEach(function(el) { el.classList.add('diff-added'); }); });
+  _diffResults.removed.forEach(function(r) { root.querySelectorAll('[data-subnet-id="' + CSS.escape(r.id) + '"],[data-vnet-id="' + CSS.escape(r.id) + '"],[data-gwid="' + CSS.escape(r.id) + '"]').forEach(function(el) { el.classList.add('diff-removed'); }); });
+  _diffResults.modified.forEach(function(r) { root.querySelectorAll('[data-subnet-id="' + CSS.escape(r.id) + '"],[data-vnet-id="' + CSS.escape(r.id) + '"],[data-gwid="' + CSS.escape(r.id) + '"]').forEach(function(el) { el.classList.add('diff-modified'); }); });
+  if (_diffFilter === 'changes') {
+    _diffResults.unchanged.forEach(function(r) { root.querySelectorAll('[data-subnet-id="' + CSS.escape(r.id) + '"],[data-vnet-id="' + CSS.escape(r.id) + '"],[data-gwid="' + CSS.escape(r.id) + '"]').forEach(function(el) { el.classList.add('diff-unchanged-dim'); }); });
+  }
+}
+
+function _clearDiffOverlay() {
+  var root = document.getElementById('mapRoot');
+  if (!root) return;
+  root.querySelectorAll('.diff-added,.diff-removed,.diff-modified,.diff-unchanged-dim').forEach(function(el) { el.classList.remove('diff-added', 'diff-removed', 'diff-modified', 'diff-unchanged-dim'); });
+}
+
+function compareWithSnapshot(snapIdx) {
+  var snaps;
+  try { snaps = JSON.parse(localStorage.getItem('azureNetMap_snapshots') || '[]'); }
+  catch(e) { showToast('Snapshot data corrupted', 'error'); return; }
+  if (snapIdx < 0 || snapIdx >= snaps.length) return;
+  var snapData = snaps[snapIdx].data || {};
+  if (typeof snapData === 'string') { try { snapData = JSON.parse(snapData); } catch(e) { snapData = {}; } }
+  if (snapData.data) snapData = snapData.data;
+  enterDiffMode(snapData);
+}
+
+// ============================================================
+// EXPANDED COMPLIANCE ENGINE - Additional Azure-Specific Rules
+// ============================================================
+
+var _origRunCompliance = runComplianceChecks;
+runComplianceChecks = function(lk) {
+  var findings = _origRunCompliance(lk);
+
+  // CIS-6.4: HTTPS-only not enforced on storage
+  (lk.storageAccounts || []).forEach(function(sa) {
+    if (sa.enableHttpsTrafficOnly === false || sa.supportsHttpsTrafficOnly === false) {
+      findings.push({ id: 'CIS-6.4', framework: 'CIS', severity: 'HIGH', message: 'Storage account does not enforce HTTPS-only', resource: sa.name, resourceId: sa.id, remediation: 'Enable HTTPS-only traffic on the storage account' });
+    }
+  });
+
+  // CIS-7.1: VM disk encryption
+  (lk.vms || []).forEach(function(vm) {
+    var osDisk = (vm.storageProfile && vm.storageProfile.osDisk) || {};
+    if (!(osDisk.encryptionSettings && osDisk.encryptionSettings.enabled) && !(osDisk.managedDisk && osDisk.managedDisk.diskEncryptionSet && osDisk.managedDisk.diskEncryptionSet.id)) {
+      findings.push({ id: 'CIS-7.1', framework: 'CIS', severity: 'HIGH', message: 'VM OS disk not encrypted', resource: vm.name, resourceId: vm.id, remediation: 'Enable Azure Disk Encryption or use SSE with CMK' });
+    }
+  });
+
+  // ARCH-N3: NSG with too many rules
+  (lk.nsgs || []).forEach(function(nsg) {
+    if ((nsg.securityRules || []).length > 50) {
+      findings.push({ id: 'ARCH-N3', framework: 'ARCH', severity: 'LOW', message: 'NSG has ' + (nsg.securityRules||[]).length + ' rules \u2014 consider simplification', resource: nsg.name, resourceId: nsg.id, remediation: 'Consolidate rules using service tags and ASGs' });
+    }
+  });
+
+  // ARCH-N4: No NAT gateway for private subnets
+  if ((lk.natGateways || []).length === 0 && (lk.subnets || []).filter(function(s) { return s.id && !isSubnetPublic(s.id, lk); }).length > 3) {
+    findings.push({ id: 'ARCH-N4', framework: 'ARCH', severity: 'MEDIUM', message: 'No NAT Gateway for private subnet egress', resource: 'Environment', resourceId: '', remediation: 'Deploy NAT Gateway for predictable outbound connectivity' });
+  }
+
+  // ARCH-D1: SQL Server without private endpoint
+  (lk.sqlServers || []).forEach(function(sql) {
+    var hasPE = (lk.privateEndpoints || []).some(function(pe) {
+      var conn = pe.privateLinkServiceConnections || pe.manualPrivateLinkServiceConnections || [];
+      return conn.some(function(c) { return (c.privateLinkServiceId || '').toLowerCase().indexOf((sql.id || '').toLowerCase()) >= 0; });
+    });
+    if (!hasPE) {
+      findings.push({ id: 'ARCH-D1', framework: 'ARCH', severity: 'HIGH', message: 'SQL Server without private endpoint', resource: sql.name, resourceId: sql.id, remediation: 'Create private endpoint for SQL Server to restrict network access' });
+    }
+  });
+
+  // ARCH-D2: Redis without private endpoint
+  (lk.redisCaches || []).forEach(function(redis) {
+    var hasPE = (lk.privateEndpoints || []).some(function(pe) {
+      var conn = pe.privateLinkServiceConnections || pe.manualPrivateLinkServiceConnections || [];
+      return conn.some(function(c) { return (c.privateLinkServiceId || '').toLowerCase().indexOf((redis.id || '').toLowerCase()) >= 0; });
+    });
+    if (!hasPE && (redis.publicNetworkAccess || 'Enabled') === 'Enabled') {
+      findings.push({ id: 'ARCH-D2', framework: 'ARCH', severity: 'MEDIUM', message: 'Redis Cache accessible from public network', resource: redis.name, resourceId: redis.id, remediation: 'Disable public access and use private endpoint' });
+    }
+  });
+
+  // ARCH-HA1: VM not in AZ
+  (lk.vms || []).forEach(function(vm) {
+    if (!vm.zones || vm.zones.length === 0) {
+      findings.push({ id: 'ARCH-HA1', framework: 'ARCH', severity: 'LOW', message: 'VM not in an Availability Zone', resource: vm.name, resourceId: vm.id, remediation: 'Deploy VMs across Availability Zones for HA' });
+    }
+  });
+
+  // SOC2-CC6.3: Unrestricted outbound
+  (lk.nsgs || []).forEach(function(nsg) {
+    var outAll = (nsg.securityRules || []).find(function(r) {
+      return (r.direction || '').toLowerCase() === 'outbound' && (r.access || '').toLowerCase() === 'allow' && r.destinationAddressPrefix === '*' && r.destinationPortRange === '*' && (r.protocol || '') === '*' && (r.priority || 9999) < 4000;
+    });
+    if (outAll) {
+      findings.push({ id: 'SOC2-CC6.3', framework: 'SOC2', severity: 'MEDIUM', message: 'NSG allows unrestricted outbound to all destinations', resource: nsg.name, resourceId: nsg.id, remediation: 'Restrict outbound to required destinations and ports' });
+    }
+  });
+
+  // PCI-2.2.1: Default admin username
+  (lk.vms || []).forEach(function(vm) {
+    var adminUser = (vm.osProfile && vm.osProfile.adminUsername) || '';
+    if (['admin', 'administrator', 'root', 'azureuser'].indexOf(adminUser.toLowerCase()) >= 0) {
+      findings.push({ id: 'PCI-2.2.1', framework: 'PCI', severity: 'MEDIUM', message: 'VM uses default admin username: ' + adminUser, resource: vm.name, resourceId: vm.id, remediation: 'Use a non-default admin username' });
+    }
+  });
+
+  // PCI-1.3.4: App Gateway without HTTPS
+  (lk.appGateways || []).forEach(function(agw) {
+    var listeners = agw.httpListeners || [];
+    var hasHttps = listeners.some(function(l) { return (l.protocol || '').toLowerCase() === 'https'; });
+    if (listeners.length > 0 && !hasHttps) {
+      findings.push({ id: 'PCI-1.3.4', framework: 'PCI', severity: 'HIGH', message: 'App Gateway has no HTTPS listener', resource: agw.name, resourceId: agw.id, remediation: 'Configure HTTPS listener with TLS certificate' });
+    }
+  });
+
+  // ARCH-LB1: LB without health probe
+  (lk.loadBalancers || []).forEach(function(lb) {
+    if (!lb.probes || lb.probes.length === 0) {
+      findings.push({ id: 'ARCH-LB1', framework: 'ARCH', severity: 'MEDIUM', message: 'Load balancer has no health probes', resource: lb.name, resourceId: lb.id, remediation: 'Configure health probes for backend pool monitoring' });
+    }
+  });
+
+  // ARCH-LB2: Basic SKU LB
+  (lk.loadBalancers || []).forEach(function(lb) {
+    if ((lb.sku && lb.sku.name || '').toLowerCase() === 'basic') {
+      findings.push({ id: 'ARCH-LB2', framework: 'ARCH', severity: 'MEDIUM', message: 'Load balancer uses Basic SKU', resource: lb.name, resourceId: lb.id, remediation: 'Upgrade to Standard SKU for zone-redundancy and SLA' });
+    }
+  });
+
+  // ARCH-PIP1: Basic SKU Public IP
+  (lk.publicIps || []).forEach(function(pip) {
+    if ((pip.sku && pip.sku.name || '').toLowerCase() === 'basic') {
+      findings.push({ id: 'ARCH-PIP1', framework: 'ARCH', severity: 'LOW', message: 'Public IP uses Basic SKU (retiring Sept 2025)', resource: pip.name, resourceId: pip.id, remediation: 'Upgrade to Standard SKU for zone-redundancy' });
+    }
+  });
+
+  // ARCH-FN1: Function App without VNet integration
+  (lk.functionApps || []).forEach(function(fn) {
+    if (!fn.virtualNetworkSubnetId) {
+      findings.push({ id: 'ARCH-FN1', framework: 'ARCH', severity: 'LOW', message: 'Function App not integrated with VNet', resource: fn.name, resourceId: fn.id, remediation: 'Enable VNet integration for secure outbound access' });
+    }
+  });
+
+  return findings.sort(function(a, b) { var sevOrder = { CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4 }; return (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9); });
+};
+
+// ============================================================
+// COMPLIANCE EXPORT ENHANCEMENTS - AZ CLI, Azure Policy, OPA
+// ============================================================
+
+function exportComplianceAzCli() {
+  if (!_lk) return;
+  var findings = runComplianceChecks(_lk);
+  var cli = '#!/bin/bash\n# Azure Compliance Remediation Commands\n# Generated by Azure Mapper\n\n';
+  findings.forEach(function(f) {
+    cli += '# ' + f.id + ': ' + f.message + ' (' + f.resource + ')\n';
+    var parsed = parseResourceId(f.resourceId || '');
+    if (f.id === 'CIS-6.1' || f.id === 'CIS-6.2') {
+      cli += 'az network nsg rule delete --resource-group "' + (parsed.resourceGroup || 'RG') + '" --nsg-name "' + f.resource + '" --name "' + (f.rule || 'RULE_NAME') + '"\n\n';
+    } else if (f.id === 'ARCH-S1') {
+      cli += 'az storage account update --name "' + f.resource + '" --allow-blob-public-access false\n\n';
+    } else if (f.id === 'ARCH-S2') {
+      cli += 'az storage account update --name "' + f.resource + '" --default-action Deny\n\n';
+    } else if (f.id === 'CIS-6.4') {
+      cli += 'az storage account update --name "' + f.resource + '" --https-only true\n\n';
+    } else {
+      cli += '# Manual remediation: ' + f.remediation + '\n\n';
+    }
+  });
+  var blob = new Blob([cli], { type: 'text/plain' });
+  var a = document.createElement('a'); a.download = 'azure-remediation.sh'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+function exportComplianceAzurePolicy() {
+  if (!_lk) return;
+  var findings = runComplianceChecks(_lk);
+  var policies = [];
+  var seen = {};
+  findings.forEach(function(f) {
+    if (seen[f.id]) return;
+    seen[f.id] = true;
+    policies.push({ type: 'Microsoft.Authorization/policyDefinitions', name: 'azuremapper-' + f.id.toLowerCase(), properties: { displayName: '[AzureMapper] ' + f.id + ': ' + f.message, description: f.remediation, mode: 'All', policyType: 'Custom', metadata: { category: 'Network', source: 'AzureMapper', framework: f.framework, severity: f.severity } } });
+  });
+  var blob = new Blob([JSON.stringify(policies, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a'); a.download = 'azure-policy-definitions.json'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+function exportComplianceOpaRego() {
+  if (!_lk) return;
+  var findings = runComplianceChecks(_lk);
+  var rego = '# Azure Network Compliance - OPA Rego Policies\n# Generated by Azure Mapper\npackage azure.network.compliance\n\nimport future.keywords.in\n\n';
+  var seen = {};
+  findings.forEach(function(f) {
+    if (seen[f.id]) return;
+    seen[f.id] = true;
+    var fnName = f.id.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    rego += '# ' + f.id + ': ' + f.message + '\n';
+    rego += 'deny_' + fnName + '[msg] {\n';
+    if (f.id.indexOf('CIS-6.') === 0) {
+      rego += '  nsg := input.nsgs[_]\n  rule := nsg.securityRules[_]\n  rule.direction == "Inbound"\n  rule.access == "Allow"\n  rule.sourceAddressPrefix in {"*", "0.0.0.0/0", "Internet"}\n';
+    }
+    rego += '  msg := "' + f.id + ': ' + f.message + '"\n}\n\n';
+  });
+  var blob = new Blob([rego], { type: 'text/plain' });
+  var a = document.createElement('a'); a.download = 'azure-compliance.rego'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ============================================================
+// RESOURCE GOVERNANCE ENGINE - Tier Classification
+// ============================================================
+
+var _govClassRules = [
+  { pattern: 'prod|production', scope: 'vnet', tier: 'critical', weight: 100 },
+  { pattern: 'pci|complian', scope: 'vnet', tier: 'critical', weight: 95 },
+  { pattern: 'dr-|disaster', scope: 'vnet', tier: 'critical', weight: 90 },
+  { pattern: 'shared.?serv|hub|transit', scope: 'vnet', tier: 'high', weight: 80 },
+  { pattern: 'sql|database|db', scope: 'type', tier: 'critical', weight: 90 },
+  { pattern: 'redis|cache', scope: 'type', tier: 'high', weight: 70 },
+  { pattern: 'lb|loadbalancer|appgw', scope: 'type', tier: 'high', weight: 65 },
+  { pattern: 'firewall|bastion', scope: 'type', tier: 'high', weight: 75 },
+  { pattern: 'dev|sandbox|test|staging', scope: 'vnet', tier: 'low', weight: 20 },
+  { pattern: 'lab|temp|demo', scope: 'name', tier: 'low', weight: 15 },
+  { pattern: 'bastion|jump', scope: 'name', tier: 'medium', weight: 35 }
+];
+_govClassRules.forEach(function(r) { r._re = new RegExp(r.pattern, 'i'); });
+
+var _govOverrides = {};
+var _TIER_META = {
+  critical: { rpo: 'Hourly', rto: '2-4 hours', priority: 1, color: '#ef4444' },
+  high: { rpo: '6 hours', rto: '4-8 hours', priority: 2, color: '#f59e0b' },
+  medium: { rpo: 'Daily', rto: '12 hours', priority: 3, color: '#22d3ee' },
+  low: { rpo: 'Weekly', rto: '24 hours', priority: 4, color: '#64748b' }
+};
+
+function _scoreGovTier(name, type, vnetName) {
+  var bestTier = 'low', bestWeight = -1;
+  _govClassRules.forEach(function(rule) {
+    var text = rule.scope === 'vnet' ? vnetName : rule.scope === 'type' ? type : rule.scope === 'name' ? name : name + ' ' + type + ' ' + vnetName;
+    if (rule._re.test(text) && rule.weight > bestWeight) { bestWeight = rule.weight; bestTier = rule.tier; }
+  });
+  return bestTier;
+}
+
+function runClassificationEngine(lk) {
+  var results = [];
+  var findVnetName = function(resId) {
+    for (var vid in (lk.subnetsByVnet || {})) {
+      var subs = lk.subnetsByVnet[vid];
+      for (var i = 0; i < subs.length; i++) { if ((resId || '').toLowerCase().indexOf((subs[i].id || '').toLowerCase()) >= 0) { var vn = (lk.vnets || []).find(function(v) { return v.id === vid; }); return vn ? vn.name || '' : ''; } }
+    }
+    return '';
+  };
+  var addRes = function(arr, type) {
+    (arr || []).forEach(function(r) {
+      var name = r.name || shortName(r);
+      var vnetName = findVnetName(r.id);
+      var autoTier = _scoreGovTier(name, type, vnetName);
+      var tier = _govOverrides[r.id] || autoTier;
+      var meta = _TIER_META[tier] || _TIER_META.low;
+      results.push({ id: r.id, name: name, type: type, tier: tier, rpo: meta.rpo, rto: meta.rto, auto: !_govOverrides[r.id], vnetName: vnetName });
+    });
+  };
+  addRes(lk.vms, 'VM'); addRes(lk.sqlServers, 'SQL Server'); addRes(lk.redisCaches, 'Redis');
+  addRes(lk.appGateways, 'App Gateway'); addRes(lk.loadBalancers, 'Load Balancer');
+  addRes(lk.firewalls, 'Firewall'); addRes(lk.functionApps, 'Function App'); addRes(lk.storageAccounts, 'Storage');
+  return results;
+}
+
+function openGovernanceDashboard() {
+  if (!_lk) return;
+  var data = runClassificationEngine(_lk);
+  var counts = { critical: 0, high: 0, medium: 0, low: 0 };
+  data.forEach(function(d) { counts[d.tier]++; });
+  data.sort(function(a, b) { return (_TIER_META[a.tier].priority || 9) - (_TIER_META[b.tier].priority || 9); });
+
+  openDetailPanel('Governance: ' + data.length + ' resources classified', counts.critical + ' critical | ' + counts.high + ' high | ' + counts.medium + ' medium | ' + counts.low + ' low', '');
+  var dpBody = document.getElementById('dpBody');
+  dpBody.textContent = '';
+
+  // Summary cards
+  var cardsDiv = document.createElement('div');
+  cardsDiv.style.cssText = 'padding:12px 16px;display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border)';
+  for (var tier in _TIER_META) {
+    var meta = _TIER_META[tier];
+    var card = document.createElement('div');
+    card.style.cssText = 'flex:1;min-width:120px;padding:10px;background:var(--bg-tertiary);border:1px solid var(--border);border-left:3px solid ' + meta.color + ';border-radius:6px';
+    var val = document.createElement('div');
+    val.style.cssText = 'font-family:IBM Plex Mono,monospace;font-size:20px;font-weight:700;color:' + meta.color;
+    val.textContent = counts[tier];
+    card.appendChild(val);
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase';
+    lbl.textContent = tier;
+    card.appendChild(lbl);
+    var info = document.createElement('div');
+    info.style.cssText = 'font-family:IBM Plex Mono,monospace;font-size:8px;color:var(--text-muted);margin-top:2px';
+    info.textContent = 'RPO: ' + meta.rpo + ' | RTO: ' + meta.rto;
+    card.appendChild(info);
+    cardsDiv.appendChild(card);
+  }
+  dpBody.appendChild(cardsDiv);
+
+  // Resource list
+  var listDiv = document.createElement('div');
+  listDiv.style.padding = '8px 16px';
+  data.forEach(function(r) {
+    var row = document.createElement('div');
+    row.className = 'dp-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px';
+    var badge = document.createElement('span');
+    badge.className = 'gov-tier-badge ' + r.tier;
+    badge.textContent = r.tier;
+    row.appendChild(badge);
+    var name = document.createElement('span');
+    name.className = 'val';
+    name.style.flex = '1';
+    name.textContent = r.name;
+    row.appendChild(name);
+    var type = document.createElement('span');
+    type.className = 'lbl';
+    type.style.minWidth = '80px';
+    type.textContent = r.type;
+    row.appendChild(type);
+    var auto = document.createElement('span');
+    auto.className = 'lbl';
+    auto.style.cssText = 'min-width:60px;color:' + (r.auto ? 'var(--text-muted)' : 'var(--accent-cyan)');
+    auto.textContent = r.auto ? 'Auto' : 'Manual';
+    row.appendChild(auto);
+    listDiv.appendChild(row);
+  });
+  dpBody.appendChild(listDiv);
+
+  // Export buttons
+  var expDiv = document.createElement('div');
+  expDiv.style.cssText = 'padding:12px 16px;display:flex;gap:8px';
+  ['CSV', 'JSON'].forEach(function(label, i) {
+    var btn = document.createElement('button');
+    btn.style.cssText = 'flex:1;padding:8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);font-family:IBM Plex Mono,monospace;font-size:10px;cursor:pointer;text-transform:uppercase';
+    btn.textContent = 'Export ' + label;
+    btn.addEventListener('click', [_govExportCsv, _govExportJson][i]);
+    expDiv.appendChild(btn);
+  });
+  dpBody.appendChild(expDiv);
+}
+
+function _govExportCsv() {
+  if (!_lk) return;
+  var data = runClassificationEngine(_lk);
+  var csv = 'Resource,Type,Tier,RPO,RTO,Classification,VNet\n';
+  data.forEach(function(r) { csv += '"' + _csvEsc(r.name) + '","' + _csvEsc(r.type) + '","' + _csvEsc(r.tier) + '","' + _csvEsc(r.rpo) + '","' + _csvEsc(r.rto) + '","' + (r.auto ? 'Auto' : 'Manual') + '","' + _csvEsc(r.vnetName) + '"\n'; });
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a'); a.download = 'azure-governance.csv'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+function _govExportJson() {
+  if (!_lk) return;
+  var data = runClassificationEngine(_lk);
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a'); a.download = 'azure-governance.json'; a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ============================================================
+// REPORT BUILDER
+// ============================================================
+
+var _rptModules = [
+  { id: 'exec-summary', name: 'Executive Summary', enabled: true },
+  { id: 'compliance', name: 'Compliance Report', enabled: true },
+  { id: 'governance', name: 'Resource Governance', enabled: true },
+  { id: 'inventory', name: 'Resource Inventory', enabled: true },
+  { id: 'nsg-summary', name: 'NSG Rule Summary', enabled: false },
+  { id: 'architecture', name: 'Architecture Notes', enabled: false }
+];
+
+var _rptState = { title: 'Azure Infrastructure Assessment', date: new Date().toISOString().split('T')[0] };
+
+var _rptRenderers = {
+  'exec-summary': function(lk) { var vnets = (lk.vnets||[]).length, subs = (lk.subnets||[]).length, vms = (lk.vms||[]).length, nsgs = (lk.nsgs||[]).length, f = runComplianceChecks(lk).length; return '<section style="margin-bottom:24px"><h2 style="font-size:14px;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">Executive Summary</h2><p style="font-size:11px;color:var(--text-secondary);line-height:1.8">This assessment covers <b>' + vnets + '</b> VNets, <b>' + subs + '</b> subnets, <b>' + vms + '</b> VMs, and <b>' + nsgs + '</b> NSGs. The compliance engine identified <b>' + f + '</b> findings.</p></section>'; },
+  'compliance': function(lk) { var findings = runComplianceChecks(lk); var h = '<section style="margin-bottom:24px"><h2 style="font-size:14px;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">Compliance Findings (' + findings.length + ')</h2>'; findings.forEach(function(f) { h += '<div style="font-size:10px;color:var(--text-secondary);padding:4px 0;border-bottom:1px solid rgba(30,45,74,.2)"><span class="sev-badge sev-' + f.severity + '" style="font-size:8px">' + f.severity + '</span> <b>' + esc(f.id) + '</b>: ' + esc(f.message) + ' \u2014 <i>' + esc(f.resource) + '</i></div>'; }); return h + '</section>'; },
+  'governance': function(lk) { var data = runClassificationEngine(lk); var h = '<section style="margin-bottom:24px"><h2 style="font-size:14px;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">Resource Governance (' + data.length + ')</h2>'; data.forEach(function(r) { h += '<div style="font-size:10px;color:var(--text-secondary);padding:3px 0"><span class="gov-tier-badge ' + r.tier + '" style="font-size:8px">' + r.tier + '</span> ' + esc(r.name) + ' (' + esc(r.type) + ')</div>'; }); return h + '</section>'; },
+  'inventory': function(lk) { var h = '<section style="margin-bottom:24px"><h2 style="font-size:14px;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">Resource Inventory</h2>'; var types = [['VNets', lk.vnets], ['Subnets', lk.subnets], ['VMs', lk.vms], ['NSGs', lk.nsgs], ['Route Tables', lk.routeTables], ['Firewalls', lk.firewalls], ['Storage', lk.storageAccounts], ['SQL Servers', lk.sqlServers]]; types.forEach(function(t) { if ((t[1]||[]).length > 0) { h += '<div style="font-size:11px;font-weight:600;margin:8px 0 4px">' + t[0] + ' (' + t[1].length + ')</div>'; t[1].forEach(function(r) { h += '<div style="font-size:10px;color:var(--text-secondary);padding:2px 0 2px 12px">' + esc(r.name || shortName(r)) + '</div>'; }); } }); return h + '</section>'; },
+  'nsg-summary': function(lk) { var h = '<section style="margin-bottom:24px"><h2 style="font-size:14px;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">NSG Rule Summary</h2>'; (lk.nsgs||[]).forEach(function(nsg) { h += '<div style="font-size:11px;font-weight:600;color:var(--accent-green);margin:8px 0 4px">' + esc(nsg.name) + ' (' + (nsg.securityRules||[]).length + ' rules)</div>'; (nsg.securityRules||[]).forEach(function(r) { h += '<div style="font-size:9px;color:var(--text-secondary);padding:1px 0 1px 12px">' + esc(r.access||'') + ' ' + esc(r.direction||'') + ' ' + esc(r.protocol||'*') + ' :' + esc(r.destinationPortRange||'*') + ' from ' + esc(r.sourceAddressPrefix||'*') + '</div>'; }); }); return h + '</section>'; },
+  'architecture': function(lk) { var hasHub = (lk.firewalls||[]).length > 0 || (lk.vnets||[]).some(function(v) { return (v.name||'').toLowerCase().indexOf('hub') >= 0; }); return '<section style="margin-bottom:24px"><h2 style="font-size:14px;color:var(--text-primary);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">Architecture Notes</h2><p style="font-size:11px;color:var(--text-secondary);line-height:1.8">' + (hasHub ? 'Hub-spoke topology detected.' : 'Flat topology. Consider hub-spoke.') + ' Peerings: ' + (lk.peerings||[]).length + '.</p></section>'; }
+};
+
+function openReportBuilder() {
+  if (!_lk) { showToast('Render map first', 'error'); return; }
+  document.getElementById('rptOverlay').classList.add('open');
+  _renderRptPicker();
+  _renderRptPreview();
+}
+
+function closeReportBuilder() { document.getElementById('rptOverlay').classList.remove('open'); }
+
+function _renderRptPicker() {
+  var picker = document.getElementById('rptPicker');
+  picker.textContent = '';
+  // Title input
+  var titleDiv = document.createElement('div');
+  titleDiv.style.marginBottom = '8px';
+  var titleLabel = document.createElement('label');
+  titleLabel.style.cssText = 'font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--text-muted);display:block;margin-bottom:2px';
+  titleLabel.textContent = 'REPORT TITLE';
+  titleDiv.appendChild(titleLabel);
+  var titleInput = document.createElement('input');
+  titleInput.id = 'rptTitle';
+  titleInput.value = _rptState.title;
+  titleInput.style.cssText = 'width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:IBM Plex Mono,monospace;font-size:11px;padding:6px 8px';
+  titleInput.addEventListener('input', function() { _rptState.title = this.value; _renderRptPreview(); });
+  titleDiv.appendChild(titleInput);
+  picker.appendChild(titleDiv);
+
+  // Presets
+  var preDiv = document.createElement('div');
+  preDiv.style.cssText = 'margin-bottom:12px;display:flex;gap:4px;flex-wrap:wrap';
+  ['Full', 'Compliance', 'Governance'].forEach(function(label) {
+    var btn = document.createElement('button');
+    btn.className = 'nsg-dash-pill';
+    btn.textContent = label;
+    btn.addEventListener('click', function() { _rptPreset(label.toLowerCase()); });
+    preDiv.appendChild(btn);
+  });
+  picker.appendChild(preDiv);
+
+  // Modules
+  _rptModules.forEach(function(m) {
+    var card = document.createElement('div');
+    card.className = 'rpt-mod-card' + (m.enabled ? ' active' : '');
+    var name = document.createElement('div');
+    name.className = 'mod-name';
+    name.textContent = m.name;
+    card.appendChild(name);
+    var desc = document.createElement('div');
+    desc.className = 'mod-desc';
+    desc.textContent = m.enabled ? 'Included' : 'Click to include';
+    card.appendChild(desc);
+    card.addEventListener('click', function() { m.enabled = !m.enabled; _renderRptPicker(); _renderRptPreview(); });
+    picker.appendChild(card);
+  });
+
+  // Export button
+  var expBtn = document.createElement('button');
+  expBtn.style.cssText = 'width:100%;padding:10px;margin-top:12px;background:var(--accent-blue);border:none;border-radius:6px;color:#fff;font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase';
+  expBtn.textContent = 'Export HTML';
+  expBtn.addEventListener('click', _rptGenerate);
+  picker.appendChild(expBtn);
+}
+
+function _rptPreset(type) {
+  var presets = { full: _rptModules.map(function(m) { return m.id; }), compliance: ['exec-summary', 'compliance'], governance: ['exec-summary', 'governance', 'inventory'] };
+  var ids = presets[type] || presets.full;
+  _rptModules.forEach(function(m) { m.enabled = ids.indexOf(m.id) >= 0; });
+  _renderRptPicker(); _renderRptPreview();
+}
+
+function _renderRptPreview() {
+  var preview = document.getElementById('rptPreview');
+  var enabled = _rptModules.filter(function(m) { return m.enabled; });
+  preview.textContent = '';
+  var wrapper = document.createElement('div');
+  wrapper.style.cssText = 'font-family:IBM Plex Mono,monospace;max-width:700px;margin:0 auto';
+  var h1 = document.createElement('h1');
+  h1.style.cssText = 'font-size:20px;color:var(--accent-cyan);margin-bottom:4px';
+  h1.textContent = _rptState.title;
+  wrapper.appendChild(h1);
+  var date = document.createElement('p');
+  date.style.cssText = 'font-size:10px;color:var(--text-muted);margin-bottom:20px';
+  date.textContent = _rptState.date;
+  wrapper.appendChild(date);
+  if (enabled.length === 0) {
+    var msg = document.createElement('p');
+    msg.style.color = 'var(--text-muted)';
+    msg.textContent = 'Select modules from the left panel';
+    wrapper.appendChild(msg);
+  } else {
+    enabled.forEach(function(m) {
+      var section = document.createElement('div');
+      var renderer = _rptRenderers[m.id];
+      if (renderer) section.innerHTML = renderer(_lk);
+      wrapper.appendChild(section);
+    });
+  }
+  preview.appendChild(wrapper);
+}
+
+function _rptGenerate() {
+  var enabled = _rptModules.filter(function(m) { return m.enabled; });
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(_rptState.title) + '</title>';
+  html += '<style>body{font-family:Segoe UI,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1e293b;background:#fff;line-height:1.6}h1{color:#0369a1;font-size:24px;border-bottom:2px solid #0ea5e9;padding-bottom:8px}h2{color:#334155;font-size:16px;margin:24px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px}.sev-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600}.sev-CRITICAL{background:#fecaca;color:#dc2626}.sev-HIGH{background:#fed7aa;color:#ea580c}.sev-MEDIUM{background:#fef3c7;color:#d97706}.sev-LOW{background:#dbeafe;color:#2563eb}.gov-tier-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600}.critical{background:#fecaca;color:#dc2626}.high{background:#fed7aa;color:#ea580c}.medium{background:#e0f2fe;color:#0284c7}.low{background:#f1f5f9;color:#64748b}.footer{font-size:10px;color:#94a3b8;margin-top:40px;border-top:1px solid #e2e8f0;padding-top:8px}</style></head><body>';
+  html += '<h1>' + esc(_rptState.title) + '</h1><p style="color:#64748b;font-size:12px">Generated: ' + _rptState.date + '</p>';
+  enabled.forEach(function(m) {
+    var renderer = _rptRenderers[m.id];
+    if (renderer) {
+      var _cssVars = {'--accent-red':'#ef4444','--accent-orange':'#f59e0b','--accent-green':'#10b981','--accent-cyan':'#06b6d4','--accent-blue':'#3b82f6','--accent-purple':'#8b5cf6','--text-primary':'#e2e8f0','--text-secondary':'#94a3b8','--text-muted':'#64748b','--border':'#1e2d4a','--bg-secondary':'#0f1b2d','--bg-tertiary':'#162035'};
+      html += renderer(_lk).replace(/var\(--([\w-]+)\)/g, function(m, n) { return _cssVars['--' + n] || '#64748b'; });
+    }
+  });
+  html += '<div class="footer">Generated by Azure Mapper</div></body></html>';
+  var blob = new Blob([html], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.download = _rptState.title.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-' + _rptState.date + '.html';
+  a.href = URL.createObjectURL(blob); a.click(); URL.revokeObjectURL(a.href);
+  showToast('Report exported', 'success');
+}
+
+// ============================================================
+// DETAIL LEVEL MODES - Collapsed / Normal / Expanded
+// ============================================================
+
+var _detailLevel = 1;
+
+function cycleDetailLevel(direction) {
+  if (direction === 'up') _detailLevel = Math.min(2, _detailLevel + 1);
+  else _detailLevel = Math.max(0, _detailLevel - 1);
+  savePrefs({ detailLevel: _detailLevel });
+  var root = document.getElementById('mapRoot');
+  if (root) {
+    root.classList.remove('detail-collapsed', 'detail-expanded');
+    if (_detailLevel === 0) root.classList.add('detail-collapsed');
+    else if (_detailLevel === 2) root.classList.add('detail-expanded');
+  }
+  showToast('Detail level: ' + ['Collapsed', 'Normal', 'Expanded'][_detailLevel], 'info');
+}
+
+// ============================================================
+// FLOW EXPOSURE DASHBOARD
+// ============================================================
+
+function openFlowExposureDashboard() {
+  if (!_lk) return;
+  var subnets = _lk.subnets || [];
+  var results = subnets.map(function(sub) {
+    var subId = (sub.id || '').toLowerCase();
+    var nsg = _lk.nsgBySubnet[subId];
+    var ingressScore = 0, egressScore = 0;
+    if (nsg) {
+      (nsg.securityRules || []).forEach(function(r) {
+        if ((r.access || '').toLowerCase() !== 'allow') return;
+        var isInternet = ['*', '0.0.0.0/0', 'Internet'].indexOf(r.sourceAddressPrefix || '') >= 0;
+        var port = r.destinationPortRange || '*';
+        var weight = port === '*' ? 10 : (port.indexOf('-') >= 0 ? 5 : 2);
+        if ((r.direction || '').toLowerCase() === 'inbound') ingressScore += isInternet ? weight * 3 : weight;
+        else { var isDstInternet = ['*', '0.0.0.0/0', 'Internet'].indexOf(r.destinationAddressPrefix || '') >= 0; egressScore += isDstInternet ? weight * 3 : weight; }
+      });
+    } else { ingressScore = 50; egressScore = 50; }
+    return { name: sub.name || shortName(sub), id: sub.id, ingress: ingressScore, egress: egressScore, total: ingressScore + egressScore, hasNsg: !!nsg };
+  });
+  results.sort(function(a, b) { return b.total - a.total; });
+
+  openDetailPanel('Flow Exposure Dashboard', results.length + ' subnets ranked by exposure', '');
+  var dpBody = document.getElementById('dpBody');
+  dpBody.textContent = '';
+
+  var info = document.createElement('div');
+  info.style.cssText = 'padding:12px 16px;border-bottom:1px solid var(--border);font-family:IBM Plex Mono,monospace;font-size:10px;color:var(--text-muted)';
+  info.textContent = 'Subnets ranked by NSG exposure. Higher score = more open rules.';
+  dpBody.appendChild(info);
+
+  results.forEach(function(r) {
+    var pct = Math.min(100, Math.round(r.total / 1.5));
+    var color = r.total > 40 ? 'var(--accent-red)' : r.total > 20 ? 'var(--accent-orange)' : 'var(--accent-green)';
+    var row = document.createElement('div');
+    row.className = 'dp-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 16px';
+    var name = document.createElement('span');
+    name.className = 'val';
+    name.style.cssText = 'flex:1;min-width:120px';
+    name.textContent = r.name;
+    row.appendChild(name);
+    var ingr = document.createElement('span');
+    ingr.className = 'lbl';
+    ingr.style.cssText = 'min-width:40px;text-align:right';
+    ingr.textContent = 'IN:' + r.ingress;
+    row.appendChild(ingr);
+    var egr = document.createElement('span');
+    egr.className = 'lbl';
+    egr.style.cssText = 'min-width:40px;text-align:right';
+    egr.textContent = 'OUT:' + r.egress;
+    row.appendChild(egr);
+    var barWrap = document.createElement('div');
+    barWrap.style.cssText = 'flex:1;height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden';
+    var barFill = document.createElement('div');
+    barFill.style.cssText = 'width:' + pct + '%;height:100%;background:' + color + ';border-radius:3px';
+    barWrap.appendChild(barFill);
+    row.appendChild(barWrap);
+    var score = document.createElement('span');
+    score.style.cssText = 'color:' + color + ';font-weight:600;min-width:30px;text-align:right;font-size:10px';
+    score.textContent = r.total;
+    row.appendChild(score);
+    if (!r.hasNsg) { var noNsg = document.createElement('span'); noNsg.style.cssText = 'color:var(--accent-red);font-size:8px'; noNsg.textContent = 'NO NSG'; row.appendChild(noNsg); }
+    dpBody.appendChild(row);
+  });
+}
+
+// ============================================================
+// ADDITIONAL KEYBOARD SHORTCUTS
+// ============================================================
+
+(function wireNewShortcuts() {
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (e.shiftKey && e.key === 'F') { e.preventDefault(); openNsgDashboard(); }
+    if (e.shiftKey && e.key === 'G') { e.preventDefault(); openGovernanceDashboard(); }
+    if (e.shiftKey && e.key === 'B') { e.preventDefault(); openReportBuilder(); }
+    if (e.shiftKey && e.key === 'D') { e.preventDefault(); _designMode ? exitDesignMode() : enterDesignMode(); }
+    if (e.shiftKey && e.key === 'E') { e.preventDefault(); openFlowExposureDashboard(); }
+    if (e.key === '[') { e.preventDefault(); cycleDetailLevel('down'); }
+    if (e.key === ']') { e.preventDefault(); cycleDetailLevel('up'); }
+  });
+})();
+
+// ============================================================
+// PATCH COMPLIANCE DASHBOARD - Add new export buttons
+// ============================================================
+
+(function patchComplianceDashboard() {
+  var origOpen = openComplianceDashboard;
+  openComplianceDashboard = function() {
+    origOpen();
+    var body = document.getElementById('dpBody');
+    if (!body || body.querySelector('[data-comp-extra]')) return;
+    var extra = document.createElement('div');
+    extra.setAttribute('data-comp-extra', '1');
+    extra.style.cssText = 'padding:0 16px 12px;display:flex;gap:8px';
+    ['AZ CLI', 'Azure Policy', 'OPA Rego'].forEach(function(label, i) {
+      var btn = document.createElement('button');
+      btn.style.cssText = 'flex:1;padding:8px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);font-family:IBM Plex Mono,monospace;font-size:10px;cursor:pointer;text-transform:uppercase';
+      btn.textContent = label;
+      btn.addEventListener('click', [exportComplianceAzCli, exportComplianceAzurePolicy, exportComplianceOpaRego][i]);
+      extra.appendChild(btn);
+    });
+    body.appendChild(extra);
+  };
+})();
 
 // ============================================================
 // SELF-TEST SUITE
